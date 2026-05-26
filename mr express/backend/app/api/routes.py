@@ -693,6 +693,19 @@ async def mark_delivered(
 # --- HIKOYALAR (STORIES) TIZIMI ENDPOINTLARI ---
 # =====================================================================
 
+@router.get("/payment-info")
+async def get_payment_info():
+    """Admin tomonidan kiritilgan to'lov karta ma'lumotlari."""
+    row = await fetchrow("SELECT card_number, card_holder, bank_name FROM payment_settings WHERE id = 1")
+    if not row:
+        return {"card_number": "", "card_holder": "", "bank_name": ""}
+    return {
+        "card_number": row["card_number"] or "",
+        "card_holder": row["card_holder"] or "",
+        "bank_name": row["bank_name"] or "",
+    }
+
+
 @router.get("/stories")
 async def get_stories():
     """Bazadagi barcha faol hikoyalarni o'qib beradi (rasm + video)"""

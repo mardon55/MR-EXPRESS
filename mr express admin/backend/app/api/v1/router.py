@@ -10,6 +10,7 @@ from app.api.v1.endpoints import (
     promocodes,
     reels,
     reviews,
+    settings,
     users,
 )
 
@@ -24,3 +25,4 @@ api_router.include_router(reels.router, prefix="/reels", tags=["reels"])
 api_router.include_router(group_buys.router, prefix="/group-buys", tags=["group-buys"])
 api_router.include_router(promocodes.router, prefix="/promocodes", tags=["promocodes"])
 api_router.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
+api_router.include_router(settings.router, prefix="/settings", tags=["settings"])

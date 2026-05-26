@@ -10,6 +10,7 @@ import {
   UserGroupIcon,
   TicketIcon,
   ChatBubbleLeftRightIcon,
+  CreditCardIcon,
 } from '@heroicons/react/24/outline'
 import {
   Squares2X2Icon as Squares2X2Solid,
@@ -22,6 +23,7 @@ import {
   UserGroupIcon as UserGroupSolid,
   TicketIcon as TicketSolid,
   ChatBubbleLeftRightIcon as ChatBubbleSolid,
+  CreditCardIcon as CreditCardSolid,
 } from '@heroicons/react/24/solid'
 
 export type IconComponent = ComponentType<SVGProps<SVGSVGElement>>
@@ -115,6 +117,14 @@ export const NAVIGATION: NavItem[] = [
     path: '/reviews',
     icon: ChatBubbleLeftRightIcon,
     iconActive: ChatBubbleSolid,
+  },
+  {
+    id: 'settings',
+    label: 'Sozlamalar',
+    description: 'To\'lov kartasi sozlamalari',
+    path: '/settings',
+    icon: CreditCardIcon,
+    iconActive: CreditCardSolid,
   },
 ]
 

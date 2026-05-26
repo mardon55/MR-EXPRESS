@@ -41,6 +41,22 @@ async def _migrate_schema(db: aiosqlite.Connection):
             "ALTER TABLE stories ADD COLUMN media_type TEXT DEFAULT 'image'"
         )
 
+    # payment_settings jadvali
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS payment_settings (
+            id INTEGER PRIMARY KEY DEFAULT 1,
+            card_number TEXT DEFAULT '',
+            card_holder TEXT DEFAULT '',
+            bank_name TEXT DEFAULT '',
+            updated_at TEXT DEFAULT (datetime('now'))
+        )
+        """
+    )
+    await db.execute(
+        "INSERT OR IGNORE INTO payment_settings (id) VALUES (1)"
+    )
+
     # reviews jadvali mavjudligini tekshirish (eski bazalar uchun)
     cur = await db.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='reviews'"
