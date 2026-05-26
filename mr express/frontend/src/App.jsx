@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 import LiquidBackground from './components/LiquidBackground';
@@ -42,31 +42,58 @@ function initTelegramFullscreen() {
   return tg;
 }
 
-/** Telegram orqa tugmasi — bosh sahifada yashirin, boshqalarda ko'rinadi */
+/**
+ * Telegram va Android hardware orqa tugmasi handler.
+ * - Bosh sahifada: BackButton yashirin (app yopiladi — to'g'ri)
+ * - Boshqa sahifalarda: BackButton ko'rinadi + Android hardware back ham orqaga qaytaradi
+ */
 function TelegramBackButton() {
   const location = useLocation();
   const navigate = useNavigate();
+  const navigateRef = useRef(navigate);
   const isHome = location.pathname === '/';
 
+  // navigate ref'ni har doim yangilab turish (stale closure oldini olish)
+  useEffect(() => {
+    navigateRef.current = navigate;
+  });
+
+  // Telegram BackButton (header dagi orqa tugma)
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     if (!tg?.BackButton) return;
 
     if (isHome) {
       tg.BackButton.hide();
-    } else {
-      tg.BackButton.show();
+      return;
     }
 
-    const handleBack = () => {
-      navigate(-1);
+    tg.BackButton.show();
+    const handler = () => navigateRef.current(-1);
+    tg.BackButton.onClick(handler);
+    return () => tg.BackButton.offClick(handler);
+  }, [isHome]);
+
+  // Android hardware back tugmasi (popstate orqali)
+  useEffect(() => {
+    if (isHome) return;
+
+    // Brauzer tarixiga "sentinel" holat qo'shamiz
+    // Android back bosganda popstate ishga tushadi (app yopilmaydi)
+    window.history.pushState({ _back: true }, '');
+
+    const onPopState = () => {
+      // Sentinelni qayta push qilamiz (keyingi back uchun)
+      window.history.pushState({ _back: true }, '');
+      // React Router orqali orqaga qaytamiz
+      navigateRef.current(-1);
     };
 
-    tg.BackButton.onClick(handleBack);
+    window.addEventListener('popstate', onPopState);
     return () => {
-      tg.BackButton.offClick(handleBack);
+      window.removeEventListener('popstate', onPopState);
     };
-  }, [isHome, navigate]);
+  }, [isHome, location.pathname]);
 
   return null;
 }
