@@ -25,8 +25,12 @@ async def get_db() -> aiosqlite.Connection:
         _db = await aiosqlite.connect(str(db_path))
         _db.row_factory = aiosqlite.Row
         await _db.execute("PRAGMA journal_mode=WAL")
-        await _db.execute("PRAGMA busy_timeout=10000")
-        await _migrate(_db)
+        await _db.execute("PRAGMA busy_timeout=30000")
+        await _db.execute("PRAGMA synchronous=NORMAL")
+        try:
+            await _migrate(_db)
+        except Exception:
+            pass
     return _db
 
 
@@ -250,17 +254,33 @@ async def _seed_subcategories(db: aiosqlite.Connection) -> None:
 
 
 async def fetch(sql: str, *args) -> list[dict]:
+    import asyncio as _asyncio
     db = await get_db()
-    cur = await db.execute(sql, args)
-    rows = await cur.fetchall()
-    return [_row_dict(r) for r in rows]
+    for attempt in range(10):
+        try:
+            cur = await db.execute(sql, args)
+            rows = await cur.fetchall()
+            return [_row_dict(r) for r in rows]
+        except Exception as e:
+            if "database is locked" in str(e) and attempt < 9:
+                await _asyncio.sleep(0.3 * (attempt + 1))
+                continue
+            raise
 
 
 async def fetchrow(sql: str, *args) -> dict | None:
+    import asyncio as _asyncio
     db = await get_db()
-    cur = await db.execute(sql, args)
-    row = await cur.fetchone()
-    return _row_dict(row)
+    for attempt in range(10):
+        try:
+            cur = await db.execute(sql, args)
+            row = await cur.fetchone()
+            return _row_dict(row)
+        except Exception as e:
+            if "database is locked" in str(e) and attempt < 9:
+                await _asyncio.sleep(0.3 * (attempt + 1))
+                continue
+            raise
 
 
 async def fetchval(sql: str, *args):
@@ -271,7 +291,19 @@ async def fetchval(sql: str, *args):
 
 
 async def execute(sql: str, *args) -> int | None:
-    db = await get_db()
-    cur = await db.execute(sql, args)
-    await db.commit()
-    return cur.lastrowid
+    import asyncio as _asyncio
+    db_path = Path(settings.sqlite_path)
+    for attempt in range(8):
+        try:
+            async with aiosqlite.connect(str(db_path), timeout=30.0) as wdb:
+                wdb.row_factory = aiosqlite.Row
+                await wdb.execute("PRAGMA journal_mode=WAL")
+                await wdb.execute("PRAGMA busy_timeout=30000")
+                cur = await wdb.execute(sql, args)
+                await wdb.commit()
+                return cur.lastrowid
+        except Exception as e:
+            if "database is locked" in str(e) and attempt < 7:
+                await _asyncio.sleep(0.5 * (attempt + 1))
+                continue
+            raise

@@ -111,7 +111,17 @@ async def create_reel(
         product_id,
         price,
     )
-    return {"item": await _reel_item(reel_id)}
+    return {
+        "item": {
+            "id": reel_id,
+            "video_url": video_url,
+            "price": float(price),
+            "product_id": product_id,
+            "product_name": product.get("name"),
+            "product_description": product.get("description"),
+            "product_image_url": None,
+        }
+    }
 
 
 @router.delete("/{reel_id}")

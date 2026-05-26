@@ -242,4 +242,6 @@ async def get_or_create_user(
         first_name,
         last_name,
     )
+    db = await get_db()
+    await db.commit()
     return row["id"]

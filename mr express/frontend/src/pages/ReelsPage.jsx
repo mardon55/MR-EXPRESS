@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Clapperboard,
-  Heart,
-  MessageCircle,
-  Share2,
-  ShoppingBag,
-  Volume2,
-  VolumeX,
-} from 'lucide-react';
+import { Clapperboard, Heart, ShoppingBag, VolumeX, Volume2 } from 'lucide-react';
 import { api } from '../api';
 import { useApp } from '../context/AppContext';
 import { useTelegram } from '../hooks/useTelegram';
@@ -18,38 +10,20 @@ function mediaUrl(url) {
   return url.startsWith('/') ? url : `/${url}`;
 }
 
-/** Telegram orqali reels ulashish */
-function shareReelViaTelegram() {
-  const shareUrl = 'https://t.me';
-  const webApp = window.Telegram?.WebApp;
-  if (webApp?.shareToBot) {
-    webApp.shareToBot(shareUrl);
-    return;
-  }
-  window.Telegram?.WebApp?.shareToBot?.(shareUrl);
-}
-
-/** Bitta reel slaydi — video, overlay tugmalar va xarid kartasi */
-function ReelSlide({
-  item,
-  isMuted,
-  onToggleMute,
-  onAddToCart,
-  adding,
-}) {
+function ReelSlide({ item, isMuted, onToggleMute, onAddToCart, adding }) {
   const containerRef = useRef(null);
   const videoRef = useRef(null);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [added, setAdded] = useState(false);
 
   const product = item.product;
-  const displayPrice = item.price ?? product.price;
+  const displayPrice = item.price ?? product?.price ?? 0;
 
   useEffect(() => {
     const root = containerRef.current;
     const video = videoRef.current;
     if (!root || !video) return;
-
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -62,7 +36,6 @@ function ReelSlide({
       },
       { threshold: [0, 0.55, 0.85, 1] }
     );
-
     observer.observe(root);
     return () => observer.disconnect();
   }, []);
@@ -79,12 +52,20 @@ function ReelSlide({
     });
   };
 
+  const handleCart = async () => {
+    if (adding || added) return;
+    await onAddToCart(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  };
+
   return (
     <section
       ref={containerRef}
       className="relative h-full w-full shrink-0 snap-start snap-always bg-black"
-      aria-label={product.name}
+      aria-label={product?.name}
     >
+      {/* Video */}
       <video
         ref={videoRef}
         className="absolute inset-0 h-full w-full object-cover"
@@ -93,65 +74,50 @@ function ReelSlide({
         playsInline
         muted={isMuted}
         preload="metadata"
-        poster={product.image_url || undefined}
+        poster={product?.image_url || undefined}
+        onClick={onToggleMute}
       />
 
+      {/* Qorong'ilik gradient */}
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[50%] bg-gradient-to-t from-black/90 via-black/40 to-transparent"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black/85 via-black/30 to-transparent"
         aria-hidden
       />
 
-      <div className="absolute bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] right-3 z-10 flex flex-col items-center gap-4">
+      {/* Ovoz indikatori — ekran yuqori chap */}
+      <div className="pointer-events-none absolute left-3 top-3 z-10">
+        {isMuted ? (
+          <div className="flex items-center gap-1 rounded-full bg-black/40 px-2 py-1 backdrop-blur-sm">
+            <VolumeX className="h-3.5 w-3.5 text-white/70" strokeWidth={2} />
+            <span className="text-[10px] text-white/70">Ovoz o'chiq</span>
+          </div>
+        ) : null}
+      </div>
+
+      {/* O'ng tomonda — faqat yurakcha */}
+      <div className="absolute bottom-[calc(6rem+env(safe-area-inset-bottom,0px))] right-3 z-10 flex flex-col items-center gap-4">
         <button
           type="button"
           onClick={handleLike}
-          className="press-fluid flex flex-col items-center gap-0.5 rounded-full bg-black/35 p-2 backdrop-blur-sm"
+          className="press-fluid flex flex-col items-center gap-1 rounded-full bg-black/40 p-2.5 backdrop-blur-sm"
           aria-label="Layk"
         >
           <Heart
-            className={`h-6 w-6 ${liked ? 'fill-red-500 text-red-500' : 'text-white'}`}
+            className={`h-7 w-7 transition-colors ${liked ? 'fill-red-500 text-red-500' : 'text-white'}`}
             strokeWidth={2}
           />
-          <span className="text-[10px] font-semibold text-white">
-            {likeCount > 999 ? `${(likeCount / 1000).toFixed(1)}k` : likeCount}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          className="press-fluid flex flex-col items-center gap-0.5 rounded-full bg-black/35 p-2 backdrop-blur-sm"
-          aria-label="Izohlar"
-        >
-          <MessageCircle className="h-6 w-6 text-white" strokeWidth={2} />
-        </button>
-
-        <button
-          type="button"
-          onClick={shareReelViaTelegram}
-          className="press-fluid flex flex-col items-center gap-0.5 rounded-full bg-black/35 p-2 backdrop-blur-sm"
-          aria-label="Ulashish"
-        >
-          <Share2 className="h-6 w-6 text-white" strokeWidth={2} />
-          <span className="text-[10px] font-semibold text-white">Ulash</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={onToggleMute}
-          className="press-fluid rounded-full bg-black/35 p-2 backdrop-blur-sm"
-          aria-label={isMuted ? 'Ovozni yoqish' : 'Ovozni o\'chirish'}
-        >
-          {isMuted ? (
-            <VolumeX className="h-6 w-6 text-white" strokeWidth={2} />
-          ) : (
-            <Volume2 className="h-6 w-6 text-white" strokeWidth={2} />
+          {likeCount > 0 && (
+            <span className="text-[11px] font-semibold text-white">
+              {likeCount > 999 ? `${(likeCount / 1000).toFixed(1)}k` : likeCount}
+            </span>
           )}
         </button>
       </div>
 
-      <div className="absolute bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] left-3 right-16 z-10">
-        <div className="flex items-start gap-2.5 rounded-2xl border border-white/15 bg-black/45 p-2.5 backdrop-blur-md">
-          {product.image_url ? (
+      {/* Pastki qism — mahsulot + savatcha */}
+      <div className="absolute bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] left-3 right-14 z-10">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/15 bg-black/50 p-3 backdrop-blur-md">
+          {product?.image_url ? (
             <img
               src={product.image_url}
               alt=""
@@ -161,26 +127,23 @@ function ReelSlide({
             <div className="h-12 w-12 shrink-0 rounded-xl bg-white/10" />
           )}
           <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 text-[13px] font-semibold leading-tight text-white">
-              {product.name}
+            <p className="line-clamp-1 text-[13px] font-semibold text-white">
+              {product?.name}
             </p>
-            {product.description && (
-              <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-white/75">
-                {product.description}
-              </p>
-            )}
-            <p className="mt-1 text-[15px] font-bold text-emerald-400">
+            <p className="mt-0.5 text-[14px] font-bold text-emerald-400">
               {displayPrice.toLocaleString('uz-UZ')} so&apos;m
             </p>
           </div>
           <button
             type="button"
             disabled={adding}
-            onClick={() => onAddToCart(product)}
-            className="press-fluid flex shrink-0 items-center gap-1 rounded-xl bg-ios-blue px-3 py-2 text-[11px] font-semibold text-white disabled:opacity-60"
+            onClick={handleCart}
+            className={`press-fluid flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2.5 text-[12px] font-semibold text-white transition-colors ${
+              added ? 'bg-emerald-500' : 'bg-ios-blue'
+            } disabled:opacity-60`}
           >
             <ShoppingBag className="h-4 w-4" strokeWidth={2.25} />
-            {adding ? '...' : "Savatga"}
+            {adding ? '...' : added ? '✓' : 'Savat'}
           </button>
         </div>
       </div>
@@ -188,7 +151,6 @@ function ReelSlide({
   );
 }
 
-/** Reels asosiy sahifa — admin paneldan yuklangan videolar */
 export default function ReelsPage() {
   const { refreshCart } = useApp();
   const { haptic } = useTelegram();
@@ -205,13 +167,14 @@ export default function ReelsPage() {
       .then(setReels)
       .catch(() => {
         setReels([]);
-        setError('Reels yuklab bo\'lmadi');
+        setError("Reels yuklab bo'lmadi");
       })
       .finally(() => setLoading(false));
   }, []);
 
   const handleAddToCart = useCallback(
     async (product) => {
+      if (!product) return;
       setAddingId(product.id);
       try {
         const cart = await api.cart().catch(() => ({ items: [] }));
@@ -232,10 +195,10 @@ export default function ReelsPage() {
 
   return (
     <div className="relative h-full w-full bg-black">
-      <div className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex items-center gap-2 bg-gradient-to-b from-black/70 to-transparent px-4 pb-6 pt-2">
+      {/* Sarlavha */}
+      <div className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex items-center gap-2 bg-gradient-to-b from-black/60 to-transparent px-4 pb-5 pt-3">
         <Clapperboard className="h-5 w-5 text-white" strokeWidth={2} />
         <span className="text-sm font-semibold text-white">Reels</span>
-        <span className="text-[11px] text-white/60">Xitoy tovarlari</span>
       </div>
 
       {loading && (
@@ -245,17 +208,17 @@ export default function ReelsPage() {
       )}
 
       {!loading && reels.length === 0 && (
-        <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center text-white/70">
-          <Clapperboard className="h-10 w-10 opacity-50" />
+        <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-white/70">
+          <Clapperboard className="h-12 w-12 opacity-40" />
           <p className="text-sm">
-            {error || 'Hozircha reel yo\'q. Admin paneldan video qo\'shing.'}
+            {error || "Hozircha reel yo'q. Admin paneldan video qo'shing."}
           </p>
         </div>
       )}
 
       {!loading && reels.length > 0 && (
         <div
-          className="reels-scroll hide-scrollbar h-full w-full overflow-y-scroll overscroll-y-contain"
+          className="hide-scrollbar h-full w-full overflow-y-scroll overscroll-y-contain"
           style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
         >
           {reels.map((item) => (
@@ -265,7 +228,7 @@ export default function ReelsPage() {
               isMuted={isMuted}
               onToggleMute={() => setIsMuted((m) => !m)}
               onAddToCart={handleAddToCart}
-              adding={addingId === item.product.id}
+              adding={addingId === item.product?.id}
             />
           ))}
         </div>
