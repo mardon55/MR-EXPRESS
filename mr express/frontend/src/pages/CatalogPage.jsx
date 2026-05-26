@@ -6,6 +6,14 @@ import { useTelegram } from '../hooks/useTelegram';
 import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import ProductGrid from '../components/ProductGrid';
 
+const HAMMASI_IMAGES = {
+  'elektronika':  '/categories/hammasi-elektronika.png',
+  'kiyimlar':     '/categories/hammasi-kiyimlar.png',
+  'uy-rozgor':    '/categories/hammasi-uy-rozgor.png',
+  'gozallik':     '/categories/hammasi-gozallik.png',
+  'oyinchoqlar':  '/categories/hammasi-oyinchoqlar.png',
+};
+
 const GLASS_INDICATOR_STYLE = {
   background: 'rgba(0, 122, 255, 0.1)',
   backdropFilter: 'blur(10px)',
@@ -341,8 +349,18 @@ export default function CatalogPage() {
                 onClick={openAll}
                 className="press-fluid flex flex-col items-center gap-2 text-center"
               >
-                <div className="aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center ring-1 ring-white/20">
-                  <span className="text-2xl drop-shadow">🗂️</span>
+                <div className="aspect-square w-full overflow-hidden rounded-2xl ring-1 ring-white/20">
+                  {HAMMASI_IMAGES[activeMain?.slug] ? (
+                    <img
+                      src={HAMMASI_IMAGES[activeMain?.slug]}
+                      alt="Hammasi"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center">
+                      <span className="text-2xl drop-shadow">🗂️</span>
+                    </div>
+                  )}
                 </div>
                 <span className="line-clamp-2 px-0.5 text-[12px] font-medium leading-snug text-neutral-800">
                   Hammasi
