@@ -1,0 +1,8 @@
+node_modules/
+frontend/tools/cloudflared.exe
+dist/
+venv/
+.env
+__pycache__/
+*.pyc
+.DS_Store

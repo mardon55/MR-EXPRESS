@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mrexpress_db
+    environment:
+      POSTGRES_USER: mrexpress
+      POSTGRES_PASSWORD: mrexpress_secret
+      POSTGRES_DB: mrexpress
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  postgres_data:

@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    height: 100dvh;
+  }
+
+  body {
+    @apply font-sans antialiased;
+  }
+
+  #root {
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+  }
+}
+
+@layer base {
+  :root {
+    /* Telegram tepa paneli (X, ⋮) — butun ilova shu pastdan boshlanadi */
+    --tg-header-offset: max(
+      55px,
+      calc(env(safe-area-inset-top, 20px) + 36px)
+    );
+
+    /* Default: Digital Peach */
+    --theme-bg: #ffffff;
+    --theme-card: #f8f9fa;
+    --theme-accent: #ff7e5f;
+    --theme-accent-gradient: #ff7e5f;
+    --theme-accent-text: #ffffff;
+    --theme-text: #2d3436;
+    --theme-text-muted: #636e72;
+    --theme-border: rgba(45, 52, 54, 0.08);
+    --theme-icon-bg: rgba(255, 126, 95, 0.12);
+  }
+
+  body {
+    background-color: var(--theme-bg);
+    color: var(--theme-text);
+  }
+
+  [data-theme='carbon-mint'] .liquid-canvas,
+  [data-theme='cyber-purple'] .liquid-canvas {
+    opacity: 0.12;
+  }
+}
+
+@layer utilities {
+  /* Asosiy ilova qobig'i — barcha sahifalar shu ichida */
+  .app-shell {
+    padding-top: var(--tg-header-offset);
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 20px));
+    min-height: 100dvh;
+    box-sizing: border-box;
+  }
+
+  .app-main {
+    min-height: 0;
+    flex: 1 1 0%;
+    overflow: hidden;
+  }
+
+  .scroll-area {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    height: 100%;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Pastki floating tab bar uchun joy */
+  .pb-nav-safe {
+    padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 20px));
+  }
+
+  /* Reels — vertikal scroll-snap, har slayd to'liq ekran balandligi */
+  .reels-scroll {
+    scroll-snap-type: y mandatory;
+  }
+
+  .reels-scroll > section {
+    min-height: 100%;
+    height: 100%;
+  }
+
+  /* Multi-theme utilities */
+  .bg-theme-bg {
+    background-color: var(--theme-bg);
+  }
+  .bg-theme-card {
+    background-color: var(--theme-card);
+  }
+  .bg-theme-icon {
+    background-color: var(--theme-icon-bg);
+  }
+  .text-theme {
+    color: var(--theme-text);
+  }
+  .text-theme-muted {
+    color: var(--theme-text-muted);
+  }
+  .text-theme-accent {
+    color: var(--theme-accent);
+  }
+  .border-theme {
+    border-color: var(--theme-border);
+  }
+  .shadow-theme-sm {
+    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+  }
+  .btn-theme-accent {
+    background: var(--theme-accent-gradient);
+    color: var(--theme-accent-text);
+  }
+  .ring-theme-accent {
+    box-shadow: 0 0 0 2px var(--theme-accent);
+  }
+}
