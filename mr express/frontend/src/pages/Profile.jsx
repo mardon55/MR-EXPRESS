@@ -32,54 +32,8 @@ import {
   IconNightMarket,
 } from '../components/icons/ProfileMenuIcons';
 
-/** Guruhli xarid — aktiv guruhlar uchun mock ma'lumotlar (API ulanishi keyinroq) */
-const ACTIVE_GROUP_BUYS = [
-  {
-    id: 'gb-1',
-    name: 'Smartfon qopqoq — silikon',
-    image:
-      'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=120&h=120&fit=crop',
-    groupPrice: 89_000,
-    currentMembers: 2,
-    requiredMembers: 3,
-    /** 24 soatlik muddat tugash vaqti (ms) — demo uchun hozirdan +18 soat */
-    expiresAt: Date.now() + 18 * 60 * 60 * 1000,
-  },
-  {
-    id: 'gb-2',
-    name: 'Bluetooth quloqchin TWS',
-    image:
-      'https://images.unsplash.com/photo-1590658268037-6bf12f032a33?w=120&h=120&fit=crop',
-    groupPrice: 249_000,
-    currentMembers: 1,
-    requiredMembers: 3,
-    expiresAt: Date.now() + 6 * 60 * 60 * 1000 + 42 * 60 * 1000,
-  },
-];
-
-/** Guruhli xarid — muvaffaqiyatli tugallangan guruhlar mock ro'yxati */
-const COMPLETED_GROUP_BUYS = [
-  {
-    id: 'gb-done-1',
-    name: 'Elektr choynak 1.8L',
-    image:
-      'https://images.unsplash.com/photo-1563291077-7c27b05d3b0e?w=120&h=120&fit=crop',
-    groupPrice: 156_000,
-    currentMembers: 3,
-    requiredMembers: 3,
-    completedAt: '12 may 2026',
-  },
-  {
-    id: 'gb-done-2',
-    name: 'Sport sumka — yengil',
-    image:
-      'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=120&h=120&fit=crop',
-    groupPrice: 72_000,
-    currentMembers: 3,
-    requiredMembers: 3,
-    completedAt: '8 may 2026',
-  },
-];
+const ACTIVE_GROUP_BUYS = [];
+const COMPLETED_GROUP_BUYS = [];
 
 /** Qolgan millisekundlarni hh:mm:ss formatiga aylantiradi */
 function formatCountdown(ms) {
@@ -440,6 +394,28 @@ function GroupBuyingView({ onBack }) {
         </button>
       </div>
 
+      {tab === 'active' && ACTIVE_GROUP_BUYS.length === 0 && (
+        <div className="rounded-xl border border-theme bg-theme-card px-4 py-10 text-center shadow-theme-sm">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-theme-icon">
+            <Users className="h-6 w-6 text-theme-muted" strokeWidth={2} />
+          </span>
+          <p className="mt-3 text-[15px] font-semibold text-theme">Hali guruh yo&apos;q</p>
+          <p className="mt-2 text-xs leading-relaxed text-theme-muted">
+            Admin mahsulot qo&apos;shgandan so&apos;ng guruhli xaridlar shu yerda ko&apos;rinadi.
+          </p>
+        </div>
+      )}
+      {tab === 'completed' && COMPLETED_GROUP_BUYS.length === 0 && (
+        <div className="rounded-xl border border-theme bg-theme-card px-4 py-10 text-center shadow-theme-sm">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-theme-icon">
+            <CheckCircle2 className="h-6 w-6 text-theme-muted" strokeWidth={2} />
+          </span>
+          <p className="mt-3 text-[15px] font-semibold text-theme">Tugallangan xarid yo&apos;q</p>
+          <p className="mt-2 text-xs leading-relaxed text-theme-muted">
+            Muvaffaqiyatli yakunlangan guruhli xaridlar shu yerda ko&apos;rinadi.
+          </p>
+        </div>
+      )}
       <ul className="space-y-2">
         {tab === 'active' &&
           ACTIVE_GROUP_BUYS.map((item) => (
@@ -827,7 +803,6 @@ export default function Profile() {
           <MenuRow
             icon={IconNotifications}
             label="Bildirishnomalar"
-            badge={1}
             onClick={() => setSection('notifications')}
           />
           <MenuRow icon={IconHelp} label="Yordam markazi" onClick={() => setSection('help')} />
