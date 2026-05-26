@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Camera } from 'lucide-react';
 import { api } from '../api';
 import { useApp } from '../context/AppContext';
 import { useTelegram } from '../hooks/useTelegram';
@@ -45,9 +44,6 @@ export default function Home() {
         </span>
         <span className="flex-1 text-[15px] font-medium text-neutral-400">
           Mahsulot qidirish...
-        </span>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ios-blue">
-          <Camera className="h-5 w-5" strokeWidth={2} />
         </span>
       </button>
 
