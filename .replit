@@ -26,6 +26,10 @@ args = "Mini App Backend"
 task = "workflow.run"
 args = "Admin Backend"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Telegram Bot"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
@@ -61,6 +65,17 @@ outputType = "console"
 task = "shell.exec"
 args = "cd 'mr express admin/backend' && python run_api.py"
 waitForPort = 8008
+
+[[workflows.workflow]]
+name = "Telegram Bot"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd 'mr express/backend' && python run_bot.py"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[ports]]
 localPort = 5000
