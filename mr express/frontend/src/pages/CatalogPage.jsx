@@ -6,6 +6,14 @@ import { useTelegram } from '../hooks/useTelegram';
 import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import ProductGrid from '../components/ProductGrid';
 
+const SIDEBAR_IMAGES = {
+  'elektronika':  '/categories/sidebar-elektronika.png',
+  'kiyimlar':     '/categories/sidebar-kiyimlar.png',
+  'uy-rozgor':    '/categories/sidebar-uy-rozgor.png',
+  'gozallik':     '/categories/sidebar-gozallik.png',
+  'oyinchoqlar':  '/categories/sidebar-oyinchoqlar.png',
+};
+
 const HAMMASI_IMAGES = {
   'elektronika':  '/categories/hammasi-elektronika.png',
   'kiyimlar':     '/categories/hammasi-kiyimlar.png',
@@ -48,11 +56,19 @@ function MainCategoryItem({ category, active, onSelect }) {
       }`}
     >
       <span
-        className={`flex h-9 w-9 items-center justify-center rounded-xl text-xl transition-all duration-300 ease-in-out ${
+        className={`flex h-9 w-9 items-center justify-center rounded-xl text-xl transition-all duration-300 ease-in-out overflow-hidden ${
           active ? 'scale-105' : 'scale-100'
         }`}
       >
-        {category.icon || '📦'}
+        {SIDEBAR_IMAGES[category.slug] ? (
+          <img
+            src={SIDEBAR_IMAGES[category.slug]}
+            alt={category.name}
+            className="h-full w-full object-cover rounded-xl"
+          />
+        ) : (
+          category.icon || '📦'
+        )}
       </span>
       <span
         className={`max-w-[72px] text-center text-[10px] font-semibold leading-tight transition-all duration-300 ease-in-out ${
