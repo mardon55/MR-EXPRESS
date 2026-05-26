@@ -33,7 +33,7 @@ export default {
         fluid: 'cubic-bezier(0.25, 1, 0.5, 1)',
       },
       transitionDuration: {
-        fluid: '400ms',
+        fluid: '150ms',
       },
       boxShadow: {
         glass: '0 8px 32px rgba(31, 38, 135, 0.08)',
@@ -81,13 +81,13 @@ export default {
           borderColor: 'rgba(255, 255, 255, 0.35)',
         },
         '.transition-fluid': {
-          transitionProperty: 'all',
-          transitionDuration: '400ms',
+          transitionProperty: 'color, background-color, border-color, opacity, transform',
+          transitionDuration: '150ms',
           transitionTimingFunction: 'cubic-bezier(0.25, 1, 0.5, 1)',
         },
         '.press-fluid': {
-          transitionProperty: 'all',
-          transitionDuration: '400ms',
+          transitionProperty: 'transform, opacity',
+          transitionDuration: '120ms',
           transitionTimingFunction: 'cubic-bezier(0.25, 1, 0.5, 1)',
         },
         '.press-fluid:active': {
@@ -106,10 +106,6 @@ export default {
           borderColor: 'rgba(255, 255, 255, 0.4)',
           boxShadow: '0 12px 40px rgba(31, 38, 135, 0.12)',
           overflow: 'hidden',
-          transitionProperty: 'all',
-          transitionDuration: '400ms',
-          transitionTimingFunction: 'cubic-bezier(0.25, 1, 0.5, 1)',
-          animation: 'glass-float 5s ease-in-out infinite',
         },
         '.glass-float-dock': {
           width: 'calc(100% - 32px)',
