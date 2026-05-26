@@ -39,18 +39,12 @@ function getCheckoutHeaders() {
   return headers;
 }
 
-function buildOrderPayload(form, cartState) {
+function buildOrderPayload(form) {
+  const namePart = `${form.firstName} ${form.lastName}`.trim();
+  const address = [namePart, form.viloyat, form.tuman].filter(Boolean).join(', ');
   return {
-    user_name: `${form.firstName} ${form.lastName}`.trim(),
-    phone_number: form.phone.trim(),
-    region: form.viloyat,
-    district: form.tuman,
-    cart_items: cartState.items.map((item) => ({
-      product_id: item.product.id,
-      quantity: item.quantity,
-      price: Number(item.product.price),
-    })),
-    total_price: Math.round(Number(cartState.total) || 0),
+    address,
+    phone: form.phone.trim(),
   };
 }
 
@@ -232,7 +226,6 @@ function CheckoutModal({
     try {
       const payload = buildOrderPayload(
         { firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim(), viloyat, tuman },
-        cart,
       );
       const order = await submitOrderPayload(payload);
       haptic('success');

@@ -78,12 +78,13 @@ export function OrdersPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-left text-sm">
+              <table className="w-full min-w-[860px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-white/20 bg-white/5 text-ink-500 dark:border-white/10 dark:text-ink-400">
                     <th className="px-6 py-4 font-semibold">ID</th>
                     <th className="px-4 py-4 font-semibold">Mijoz</th>
                     <th className="px-4 py-4 font-semibold">Telefon</th>
+                    <th className="px-4 py-4 font-semibold">Manzil</th>
                     <th className="px-4 py-4 font-semibold">Summa</th>
                     <th className="px-4 py-4 font-semibold">Sana</th>
                     <th className="px-6 py-4 font-semibold">Status</th>
@@ -103,6 +104,11 @@ export function OrdersPage() {
                       </td>
                       <td className="px-4 py-4 text-ink-600 dark:text-ink-300">
                         {row.phone ?? '—'}
+                      </td>
+                      <td className="px-4 py-4 text-ink-600 dark:text-ink-300 max-w-[180px]">
+                        <span className="line-clamp-2 text-xs leading-relaxed">
+                          {row.address ?? '—'}
+                        </span>
                       </td>
                       <td className="px-4 py-4 text-ink-700 dark:text-ink-200">
                         {formatCurrency(row.total)}
