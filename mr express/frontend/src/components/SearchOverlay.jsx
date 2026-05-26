@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { X } from 'lucide-react';
 import { api } from '../api';
 import { useApp } from '../context/AppContext';
 import { useTelegram } from '../hooks/useTelegram';
@@ -29,8 +28,16 @@ export default function SearchOverlay({ open, onClose }) {
       setQuery('');
       setResults(null);
       setTimeout(() => inputRef.current?.focus(), 80);
+      window.__tgBackHandler = () => {
+        setQuery('');
+        setResults(null);
+        onClose();
+      };
+      return () => {
+        window.__tgBackHandler = null;
+      };
     }
-  }, [open]);
+  }, [open, onClose]);
 
   useEffect(() => {
     if (!debouncedQuery.trim()) {
@@ -57,41 +64,29 @@ export default function SearchOverlay({ open, onClose }) {
     }
   };
 
-  const handleClose = () => {
-    setQuery('');
-    setResults(null);
-    onClose();
-  };
-
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col bg-theme-bg">
-      <div className="shrink-0 px-4 pt-4 pb-3 border-b border-theme bg-theme-bg">
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1">
-            <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2">
-              <IconSearch />
-            </span>
-            <input
-              ref={inputRef}
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Mahsulot qidirish..."
-              className="w-full rounded-xl border border-theme bg-theme-card py-3 pl-10 pr-4 text-[15px] font-medium text-theme outline-none focus:border-transparent focus:ring-2 focus:ring-[var(--theme-accent)] placeholder:text-theme-muted"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck="false"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="press-fluid shrink-0 rounded-xl bg-theme-card border border-theme px-3.5 py-3 text-[14px] font-semibold text-theme-accent"
-          >
-            Bekor
-          </button>
+    <div
+      className="fixed inset-0 z-[200] flex flex-col bg-theme-bg"
+      style={{ paddingTop: 'var(--tg-header-offset)' }}
+    >
+      <div className="shrink-0 px-4 pt-3 pb-3 border-b border-theme bg-theme-bg">
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2">
+            <IconSearch />
+          </span>
+          <input
+            ref={inputRef}
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Mahsulot qidirish..."
+            className="w-full rounded-xl border border-theme bg-theme-card py-3 pl-10 pr-4 text-[15px] font-medium text-theme outline-none focus:border-transparent focus:ring-2 focus:ring-[var(--theme-accent)] placeholder:text-theme-muted"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck="false"
+          />
         </div>
       </div>
 
