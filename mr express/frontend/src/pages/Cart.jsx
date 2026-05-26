@@ -77,29 +77,86 @@ function getCheckoutErrorMessage(error) {
   return error?.message || CHECKOUT_SYSTEM_ERROR;
 }
 
-function maskCard(num) {
+function formatCardFull(num) {
   const d = (num || '').replace(/\D/g, '');
-  if (d.length < 8) return num || '—';
-  return d.slice(0, 4) + ' •••• •••• ' + d.slice(-4);
+  return d.replace(/(.{4})/g, '$1 ').trim();
 }
 
-function CopyButton({ text }) {
+function useCopy(text) {
   const [copied, setCopied] = useState(false);
-  const copy = () => {
-    navigator.clipboard?.writeText(text).catch(() => {});
+  const copy = useCallback(() => {
+    const raw = (text || '').replace(/\s/g, '');
+    navigator.clipboard?.writeText(raw).catch(() => {});
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+    setTimeout(() => setCopied(false), 2200);
+  }, [text]);
+  return [copied, copy];
+}
+
+/**
+ * To'lov kartasi ko'rinishi — to'liq raqam + egasi ismi + katta nusxa tugmasi
+ */
+function PaymentCard({ cardInfo, formattedCard, rawCard }) {
+  const [cardCopied, copyCard] = useCopy(rawCard);
+  const [holderCopied, copyHolder] = useCopy(cardInfo?.card_holder || '');
+
   return (
-    <button
-      type="button"
-      onClick={copy}
-      className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 transition active:scale-95"
-    >
-      {copied
-        ? <Check className="h-4 w-4 text-green-400" />
-        : <Copy className="h-4 w-4 text-white/70" />}
-    </button>
+    <div className="space-y-2">
+      {/* Karta vizuali */}
+      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460] p-5 shadow-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-widest text-white/50">
+            {cardInfo?.bank_name || 'To\'lov kartasi'}
+          </span>
+          <CreditCard className="h-6 w-6 text-white/40" />
+        </div>
+
+        {/* Karta raqami — to'liq, aniq */}
+        <p className="mb-1 text-[9px] uppercase tracking-widest text-white/40">Karta raqami</p>
+        <p className="mb-4 font-mono text-[22px] font-bold tracking-[0.12em] text-white leading-none">
+          {formattedCard}
+        </p>
+
+        {/* Karta egasi */}
+        <div>
+          <p className="text-[9px] uppercase tracking-widest text-white/40 mb-0.5">Karta egasi</p>
+          <p className="text-base font-bold uppercase tracking-wide text-white">
+            {cardInfo?.card_holder || '—'}
+          </p>
+        </div>
+      </div>
+
+      {/* Nusxa olish tugmalari — katta, aniq */}
+      <button
+        type="button"
+        onClick={copyCard}
+        className={`press-fluid flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-[15px] font-semibold transition-colors ${
+          cardCopied
+            ? 'bg-green-100 text-green-700'
+            : 'bg-neutral-100 text-neutral-800'
+        }`}
+      >
+        {cardCopied
+          ? <><Check className="h-4 w-4" /> Karta raqami nusxa olindi!</>
+          : <><Copy className="h-4 w-4" /> Karta raqamini nusxa olish</>}
+      </button>
+
+      {cardInfo?.card_holder && (
+        <button
+          type="button"
+          onClick={copyHolder}
+          className={`press-fluid flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[14px] font-medium transition-colors ${
+            holderCopied
+              ? 'bg-green-100 text-green-700'
+              : 'bg-neutral-50 text-neutral-600'
+          }`}
+        >
+          {holderCopied
+            ? <><Check className="h-3.5 w-3.5" /> Ism nusxa olindi!</>
+            : <><Copy className="h-3.5 w-3.5" /> Karta egasi ismini nusxa olish</>}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -193,6 +250,7 @@ function CheckoutModal({
   if (!open) return null;
 
   const rawCard = (cardInfo?.card_number || '').replace(/\D/g, '');
+  const formattedCard = formatCardFull(rawCard);
   const hasCard = rawCard.length >= 4;
 
   return (
@@ -291,38 +349,15 @@ function CheckoutModal({
               {/* Admin kartasi */}
               <div>
                 <p className="mb-2 text-xs font-medium text-neutral-500">To'lov uchun karta</p>
-                <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460] p-5 shadow-xl">
-                  <div className="mb-5 flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-widest text-white/50">
-                      {cardInfo?.bank_name || 'To\'lov kartasi'}
-                    </span>
-                    <CreditCard className="h-7 w-7 text-white/50" />
-                  </div>
-
-                  {hasCard ? (
-                    <>
-                      <div className="mb-2 flex items-center justify-between">
-                        <p className="font-mono text-lg font-semibold tracking-[0.15em] text-white">
-                          {maskCard(cardInfo.card_number)}
-                        </p>
-                        <CopyButton text={rawCard} />
-                      </div>
-                      <div className="flex items-end justify-between">
-                        <div>
-                          <p className="text-[9px] uppercase tracking-wider text-white/40">Karta egasi</p>
-                          <p className="text-sm font-semibold uppercase tracking-wide text-white">
-                            {cardInfo?.card_holder || '—'}
-                          </p>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="py-4 text-center">
-                      <p className="text-sm text-white/50">Karta ma'lumotlari hali kiritilmagan</p>
-                      <p className="text-xs text-white/30 mt-1">Admin panel → Sozlamalar</p>
+                {hasCard
+                  ? <PaymentCard cardInfo={cardInfo} formattedCard={formattedCard} rawCard={rawCard} />
+                  : (
+                    <div className="rounded-2xl bg-neutral-100 px-5 py-8 text-center">
+                      <CreditCard className="mx-auto mb-2 h-8 w-8 text-neutral-300" />
+                      <p className="text-sm text-neutral-500">Karta ma'lumotlari hali kiritilmagan</p>
+                      <p className="text-xs text-neutral-400 mt-1">Admin panel → Sozlamalar</p>
                     </div>
                   )}
-                </div>
               </div>
 
               {hasCard && (
