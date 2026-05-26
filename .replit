@@ -1,0 +1,80 @@
+modules = ["nodejs-20", "python-3.12", "web"]
+[agent]
+expertMode = true
+stack = "BEST_EFFORT_FALLBACK"
+
+[nix]
+channel = "stable-25_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Mini App Backend"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Admin Backend"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd 'mr express admin/frontend' && npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow]]
+name = "Mini App Backend"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd 'mr express/backend' && python run_api.py"
+waitForPort = 8000
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "Admin Backend"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd 'mr express admin/backend' && python run_api.py"
+waitForPort = 8008
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 8000
+externalPort = 8000
+
+[[ports]]
+localPort = 8008
+externalPort = 8008
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["bash", "-c", "cd 'mr express admin/backend' && uvicorn app.main:app --host 0.0.0.0 --port 8008 & cd 'mr express/backend' && uvicorn app.main:app --host 0.0.0.0 --port 8000 & cd 'mr express admin/frontend' && npm run dev -- --port 5000 --host 0.0.0.0"]
+build = ["bash", "-c", "cd 'mr express admin/frontend' && npm run build && cd '../../mr express/frontend' && npm run build"]

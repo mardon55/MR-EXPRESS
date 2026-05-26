@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     sqlite_path: str = str(_DEFAULT_DB)
     uploads_dir: str = str(_DEFAULT_UPLOADS)
     secret_key: str = "dev-secret-key"
-    cors_origins: list[str] = ["http://localhost:5174"]
+    cors_origins: list[str] = ["*"]
 
 
 settings = Settings()
