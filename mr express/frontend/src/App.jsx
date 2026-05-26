@@ -43,9 +43,13 @@ function initTelegramFullscreen() {
 }
 
 /**
- * Telegram va Android hardware orqa tugmasi handler.
- * - Bosh sahifada: BackButton yashirin (app yopiladi — to'g'ri)
- * - Boshqa sahifalarda: BackButton ko'rinadi + Android hardware back ham orqaga qaytaradi
+ * Telegram orqa tugmasi handler.
+ * - Bosh sahifada: BackButton yashirin (app yopiladi)
+ * - Boshqa sahifalarda: BackButton ko'rinadi
+ *
+ * Sahifalar o'z ichki navigatsiyasini override qilishi uchun
+ * window.__tgBackHandler = () => {...} ni o'rnatishi mumkin.
+ * Sahifa unmount bo'lganda uni tozalashi kerak.
  */
 function TelegramBackButton() {
   const location = useLocation();
@@ -53,12 +57,10 @@ function TelegramBackButton() {
   const navigateRef = useRef(navigate);
   const isHome = location.pathname === '/';
 
-  // navigate ref'ni har doim yangilab turish (stale closure oldini olish)
   useEffect(() => {
     navigateRef.current = navigate;
   });
 
-  // Telegram BackButton (header dagi orqa tugma)
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     if (!tg?.BackButton) return;
@@ -69,31 +71,16 @@ function TelegramBackButton() {
     }
 
     tg.BackButton.show();
-    const handler = () => navigateRef.current(-1);
+    const handler = () => {
+      if (typeof window.__tgBackHandler === 'function') {
+        window.__tgBackHandler();
+      } else {
+        navigateRef.current(-1);
+      }
+    };
     tg.BackButton.onClick(handler);
     return () => tg.BackButton.offClick(handler);
   }, [isHome]);
-
-  // Android hardware back tugmasi (popstate orqali)
-  useEffect(() => {
-    if (isHome) return;
-
-    // Brauzer tarixiga "sentinel" holat qo'shamiz
-    // Android back bosganda popstate ishga tushadi (app yopilmaydi)
-    window.history.pushState({ _back: true }, '');
-
-    const onPopState = () => {
-      // Sentinelni qayta push qilamiz (keyingi back uchun)
-      window.history.pushState({ _back: true }, '');
-      // React Router orqali orqaga qaytamiz
-      navigateRef.current(-1);
-    };
-
-    window.addEventListener('popstate', onPopState);
-    return () => {
-      window.removeEventListener('popstate', onPopState);
-    };
-  }, [isHome, location.pathname]);
 
   return null;
 }

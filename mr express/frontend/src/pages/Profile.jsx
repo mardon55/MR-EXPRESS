@@ -717,6 +717,14 @@ export default function Profile() {
   const [section, setSection] = useState(null);
   const [savingTheme, setSavingTheme] = useState(false);
 
+  // Ichki bo'lim ochiq bo'lganda Telegram back button uni yopsin (navigate(-1) emas)
+  useEffect(() => {
+    if (section) {
+      window.__tgBackHandler = () => setSection(null);
+      return () => { window.__tgBackHandler = null; };
+    }
+  }, [section]);
+
   useEffect(() => {
     api.profile().then(setProfile).catch(console.error);
   }, []);

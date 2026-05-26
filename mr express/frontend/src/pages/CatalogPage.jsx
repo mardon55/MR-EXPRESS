@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+
 import {
   ChevronLeft,
   Home,
@@ -357,14 +358,23 @@ export default function CatalogPage() {
     [activeMainId]
   );
 
-  const openSub = (sub) => {
-    haptic('light');
-    setSelectedSub(sub);
-  };
-
   const backToGrid = () => {
     haptic('light');
     setSelectedSub(null);
+  };
+
+  // Sub-kategoriya ochiq bo'lganda Telegram back button uni yopsin
+  useEffect(() => {
+    if (selectedSub) {
+      window.__tgBackHandler = backToGrid;
+      return () => { window.__tgBackHandler = null; };
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSub]);
+
+  const openSub = (sub) => {
+    haptic('light');
+    setSelectedSub(sub);
   };
 
   if (selectedSub) {
