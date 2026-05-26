@@ -18,8 +18,8 @@ export default function Home() {
 
   useEffect(() => {
     api.banners().then(setBanners).catch(console.error);
-    api.products({ discount_only: true, limit: 6 }).then(setDiscounts).catch(console.error);
-    api.products({ featured_only: true, limit: 4 }).then(setFeatured).catch(console.error);
+    api.products({ discount_only: true, limit: 100 }).then(setDiscounts).catch(console.error);
+    api.products({ limit: 100 }).then(setFeatured).catch(console.error);
   }, []);
 
   const handleAddCart = async (product) => {
