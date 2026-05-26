@@ -267,27 +267,31 @@ async def get_or_create_user(
     first_name: str | None,
     last_name: str | None,
 ) -> int:
-    row = await fetchrow(
-        """
-        INSERT INTO users (telegram_id, username, first_name, last_name)
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT (telegram_id) DO UPDATE SET
-            username = excluded.username,
-            first_name = CASE
-                WHEN users.is_registered = 1 THEN users.first_name
-                ELSE COALESCE(excluded.first_name, users.first_name)
-            END,
-            last_name = CASE
-                WHEN users.is_registered = 1 THEN users.last_name
-                ELSE COALESCE(excluded.last_name, users.last_name)
-            END
-        RETURNING id
-        """,
-        telegram_id,
-        username,
-        first_name,
-        last_name,
-    )
-    db = await get_db()
-    await db.commit()
-    return row["id"]
+    # Separate write connection to avoid cursor-in-progress conflicts
+    db_path = Path(settings.sqlite_path)
+    import aiosqlite as _aiosqlite
+    async with _aiosqlite.connect(str(db_path), timeout=30.0) as wdb:
+        wdb.row_factory = _aiosqlite.Row
+        await wdb.execute("PRAGMA journal_mode=WAL")
+        await wdb.execute("PRAGMA busy_timeout=30000")
+        cur = await wdb.execute(
+            """
+            INSERT INTO users (telegram_id, username, first_name, last_name)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT (telegram_id) DO UPDATE SET
+                username = excluded.username,
+                first_name = CASE
+                    WHEN users.is_registered = 1 THEN users.first_name
+                    ELSE COALESCE(excluded.first_name, users.first_name)
+                END,
+                last_name = CASE
+                    WHEN users.is_registered = 1 THEN users.last_name
+                    ELSE COALESCE(excluded.last_name, users.last_name)
+                END
+            RETURNING id
+            """,
+            (telegram_id, username, first_name, last_name),
+        )
+        row = await cur.fetchone()
+        await wdb.commit()
+    return dict(row)["id"]
