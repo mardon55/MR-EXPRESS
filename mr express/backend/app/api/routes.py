@@ -579,19 +579,6 @@ async def can_review(
     tid = _user_id_header(x_telegram_user_id)
     uid = await _db_user_id(tid)
 
-    delivered = await fetchval(
-        """
-        SELECT 1 FROM order_items oi
-        JOIN orders o ON o.id = oi.order_id
-        WHERE o.user_id = ? AND oi.product_id = ?
-          AND (o.status = 'Yetkazildi' OR o.status = 'delivered')
-        LIMIT 1
-        """,
-        uid, product_id,
-    )
-    if not delivered:
-        return {"can_review": False, "reason": "not_delivered"}
-
     already = await fetchval(
         "SELECT 1 FROM reviews WHERE product_id = ? AND user_id = ?",
         product_id, uid,
@@ -613,19 +600,6 @@ async def create_review(
 
     if not (1 <= body.rating <= 5):
         raise HTTPException(400, "Baho 1 dan 5 gacha bo'lishi kerak")
-
-    delivered = await fetchval(
-        """
-        SELECT 1 FROM order_items oi
-        JOIN orders o ON o.id = oi.order_id
-        WHERE o.user_id = ? AND oi.product_id = ?
-          AND (o.status = 'Yetkazildi' OR o.status = 'delivered')
-        LIMIT 1
-        """,
-        uid, product_id,
-    )
-    if not delivered:
-        raise HTTPException(403, "Sharh yozish uchun buyurtma yetkazib berilgan bo'lishi kerak")
 
     already = await fetchval(
         "SELECT 1 FROM reviews WHERE product_id = ? AND user_id = ?",
