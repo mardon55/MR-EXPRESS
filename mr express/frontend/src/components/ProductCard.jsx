@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { formatPrice } from '../api';
 import { useApp } from '../context/AppContext';
 import { useTelegram } from '../hooks/useTelegram';
-import { IconHeartFilled, IconPlus } from './icons/TabIcons';
+import { IconHeartFilled, IconCart } from './icons/TabIcons';
 
 export default function ProductCard({ product, onAddCart }) {
   const { isFavorite, toggleFavorite } = useApp();
@@ -70,7 +70,7 @@ export default function ProductCard({ product, onAddCart }) {
             onClick={handleAdd}
             className="press-fluid flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ios-blue text-white shadow-glass"
           >
-            <IconPlus />
+            <IconCart active={false} />
           </button>
         </div>
       </div>
