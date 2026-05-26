@@ -410,7 +410,6 @@ async def on_startup() -> None:
     me = await bot.get_me()
     logger.info("Bot: @%s (id=%s)", me.username, me.id)
     await setup_menu_button()
-    await get_db()
 
 
 @dp.shutdown()
@@ -425,6 +424,8 @@ async def main() -> None:
         logger.error("BOT_TOKEN .env faylida ko'rsatilmagan!")
         return
     logger.info("Bot polling boshlanmoqda... WEBAPP_URL=%s", settings.webapp_url)
+    # Backend bazani ishga tushirishini kutamiz
+    await asyncio.sleep(3)
     await dp.start_polling(bot)
 
 
