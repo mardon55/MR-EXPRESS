@@ -1,153 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-
-import {
-  ChevronLeft,
-  Home,
-  Shirt,
-  Smartphone,
-  Sparkles,
-} from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { api } from '../api';
 import { useApp } from '../context/AppContext';
 import { useTelegram } from '../hooks/useTelegram';
 import ProductGrid from '../components/ProductGrid';
-
-/**
- * Katalog daraxti — Xitoydan import tovarlar uchun asosiy va sub-kategoriyalar.
- * apiCategoryId: backend products jadvalidagi category_id bilan bog'lanadi.
- */
-const CATALOG_TREE = [
-  {
-    id: 'elektronika',
-    name: 'Elektronika',
-    icon: Smartphone,
-    apiCategoryId: 1,
-    subcategories: [
-      {
-        id: 'phones',
-        name: 'Telefonlar',
-        image:
-          'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&h=200&fit=crop',
-        searchHint: 'telefon',
-      },
-      {
-        id: 'earphones',
-        name: 'Quloqchinlar',
-        image:
-          'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&h=200&fit=crop',
-        searchHint: 'quloqchin AirPods',
-      },
-      {
-        id: 'smartwatch',
-        name: 'Smart soatlar',
-        image:
-          'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&h=200&fit=crop',
-        searchHint: 'soat',
-      },
-      {
-        id: 'powerbank',
-        name: 'Powerbank',
-        image:
-          'https://images.unsplash.com/photo-1609091839311-d5365f9ff1e5?w=200&h=200&fit=crop',
-        searchHint: 'powerbank',
-      },
-    ],
-  },
-  {
-    id: 'kiyim',
-    name: 'Kiyim-kechak',
-    icon: Shirt,
-    apiCategoryId: 2,
-    subcategories: [
-      {
-        id: 'men',
-        name: "Erkaklar kiyimi",
-        image:
-          'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=200&h=200&fit=crop',
-        searchHint: "erkak ko'ylak",
-      },
-      {
-        id: 'women',
-        name: 'Ayollar kiyimi',
-        image:
-          'https://images.unsplash.com/photo-1483985988350-763728e3685b?w=200&h=200&fit=crop',
-        searchHint: 'ayol sumka kiyim',
-      },
-      {
-        id: 'shoes',
-        name: 'Oyoq kiyimlar',
-        image:
-          'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200&h=200&fit=crop',
-        searchHint: 'oyoq kiyim',
-      },
-      {
-        id: 'hats',
-        name: 'Shapkalar',
-        image:
-          'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=200&h=200&fit=crop',
-        searchHint: 'shapka',
-      },
-    ],
-  },
-  {
-    id: 'uy',
-    name: 'Uy va Oshxona',
-    icon: Home,
-    apiCategoryId: 3,
-    subcategories: [
-      {
-        id: 'kitchen',
-        name: 'Oshxona jihozlari',
-        image:
-          'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?w=200&h=200&fit=crop',
-        searchHint: 'kofe mashina oshxona',
-      },
-      {
-        id: 'lights',
-        name: 'Chiroqlar',
-        image:
-          'https://images.unsplash.com/photo-1565814636192-845e4d4d1b0e?w=200&h=200&fit=crop',
-        searchHint: 'chiroq lampa',
-      },
-      {
-        id: 'decor',
-        name: 'Uy bezaklari',
-        image:
-          'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=200&h=200&fit=crop',
-        searchHint: 'bezak uy',
-      },
-    ],
-  },
-  {
-    id: 'gozallik',
-    name: "Go'zallik",
-    icon: Sparkles,
-    apiCategoryId: 4,
-    subcategories: [
-      {
-        id: 'perfume',
-        name: 'Parfyumeriya',
-        image:
-          'https://images.unsplash.com/photo-1541643600914-78b084683601?w=200&h=200&fit=crop',
-        searchHint: 'parfyum',
-      },
-      {
-        id: 'makeup',
-        name: 'Kosmetika',
-        image:
-          'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop',
-        searchHint: 'kosmetika',
-      },
-      {
-        id: 'skincare',
-        name: 'Terini parvarishlash',
-        image:
-          'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=200&h=200&fit=crop',
-        searchHint: 'terini krem',
-      },
-    ],
-  },
-];
 
 const GLASS_INDICATOR_STYLE = {
   background: 'rgba(0, 122, 255, 0.1)',
@@ -156,10 +12,24 @@ const GLASS_INDICATOR_STYLE = {
   border: '1px solid rgba(255, 255, 255, 0.2)',
 };
 
-/** Chap panel — bitta asosiy kategoriya tugmasi (fon indikator alohida siljiydi) */
-function MainCategoryItem({ category, active, onSelect }) {
-  const Icon = category.icon;
+const SUB_GRADIENTS = [
+  'from-blue-400 to-blue-600',
+  'from-purple-400 to-purple-600',
+  'from-emerald-400 to-emerald-600',
+  'from-orange-400 to-orange-600',
+  'from-pink-400 to-pink-600',
+  'from-cyan-400 to-cyan-600',
+  'from-rose-400 to-rose-600',
+  'from-amber-400 to-amber-600',
+  'from-indigo-400 to-indigo-600',
+  'from-teal-400 to-teal-600',
+];
 
+function gradientForIndex(i) {
+  return SUB_GRADIENTS[i % SUB_GRADIENTS.length];
+}
+
+function MainCategoryItem({ category, active, onSelect }) {
   return (
     <button
       type="button"
@@ -169,19 +39,15 @@ function MainCategoryItem({ category, active, onSelect }) {
       }`}
     >
       <span
-        className={`flex h-9 w-9 items-center justify-center transition-all duration-300 ease-in-out ${
-          active
-            ? 'scale-105 text-[#007AFF]'
-            : 'scale-100 text-neutral-500'
+        className={`flex h-9 w-9 items-center justify-center rounded-xl text-xl transition-all duration-300 ease-in-out ${
+          active ? 'scale-105' : 'scale-100'
         }`}
       >
-        <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.25 : 2} />
+        {category.icon || '📦'}
       </span>
       <span
         className={`max-w-[72px] text-center text-[10px] font-semibold leading-tight transition-all duration-300 ease-in-out ${
-          active
-            ? 'scale-105 text-[#007AFF]'
-            : 'scale-100 text-neutral-600'
+          active ? 'scale-105 text-[#007AFF]' : 'scale-100 text-neutral-600'
         }`}
       >
         {category.name}
@@ -190,38 +56,32 @@ function MainCategoryItem({ category, active, onSelect }) {
   );
 }
 
-/** Chap panel — suyuq shisha indikator va kategoriya ro'yxati */
-function CategorySidebar({ activeMainId, onSelect }) {
+function CategorySidebar({ categories, activeId, onSelect }) {
   const containerRef = useRef(null);
   const itemRefs = useRef({});
   const [indicator, setIndicator] = useState({ top: 0, height: 0 });
 
   const updateIndicator = useCallback(() => {
     const container = containerRef.current;
-    const item = itemRefs.current[activeMainId];
+    const item = itemRefs.current[activeId];
     if (!container || !item) return;
-
     const containerRect = container.getBoundingClientRect();
     const itemRect = item.getBoundingClientRect();
     setIndicator({
       top: itemRect.top - containerRect.top + container.scrollTop,
       height: itemRect.height,
     });
-  }, [activeMainId]);
+  }, [activeId]);
 
-  useLayoutEffect(() => {
-    updateIndicator();
-  }, [updateIndicator]);
+  useLayoutEffect(() => { updateIndicator(); }, [updateIndicator]);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return undefined;
-
     const ro = new ResizeObserver(updateIndicator);
     ro.observe(container);
     window.addEventListener('resize', updateIndicator);
     container.addEventListener('scroll', updateIndicator, { passive: true });
-
     return () => {
       ro.disconnect();
       window.removeEventListener('resize', updateIndicator);
@@ -237,23 +97,17 @@ function CategorySidebar({ activeMainId, onSelect }) {
     >
       <span
         className="pointer-events-none absolute left-1.5 right-1.5 rounded-2xl transition-all duration-300 ease-in-out"
-        style={{
-          ...GLASS_INDICATOR_STYLE,
-          top: indicator.top,
-          height: indicator.height,
-        }}
+        style={{ ...GLASS_INDICATOR_STYLE, top: indicator.top, height: indicator.height }}
         aria-hidden
       />
-      {CATALOG_TREE.map((cat) => (
+      {categories.map((cat) => (
         <div
           key={cat.id}
-          ref={(el) => {
-            itemRefs.current[cat.id] = el;
-          }}
+          ref={(el) => { itemRefs.current[cat.id] = el; }}
         >
           <MainCategoryItem
             category={cat}
-            active={cat.id === activeMainId}
+            active={cat.id === activeId}
             onSelect={() => onSelect(cat.id)}
           />
         </div>
@@ -262,21 +116,19 @@ function CategorySidebar({ activeMainId, onSelect }) {
   );
 }
 
-/** O'ng panel — sub-kategoriya kartochkasi */
-function SubCategoryCard({ sub, onOpen }) {
+function SubCategoryCard({ sub, index, onOpen }) {
   return (
     <button
       type="button"
       onClick={onOpen}
       className="press-fluid flex flex-col items-center gap-2 text-center"
     >
-      <div className="aspect-square w-full overflow-hidden rounded-2xl bg-neutral-100 ring-1 ring-neutral-200/80">
-        <img
-          src={sub.image}
-          alt=""
-          className="h-full w-full object-cover"
-          loading="lazy"
-        />
+      <div
+        className={`aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-br ${gradientForIndex(
+          index
+        )} flex items-center justify-center ring-1 ring-white/20`}
+      >
+        <span className="text-3xl drop-shadow">{sub.icon || '📦'}</span>
       </div>
       <span className="line-clamp-2 px-0.5 text-[12px] font-medium leading-snug text-neutral-800">
         {sub.name}
@@ -285,8 +137,7 @@ function SubCategoryCard({ sub, onOpen }) {
   );
 }
 
-/** Sub-kategoriya mahsulotlari ro'yxati */
-function SubCategoryProducts({ sub, mainCategory, onBack }) {
+function SubCategoryProducts({ sub, onBack }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const { refreshCart } = useApp();
@@ -294,14 +145,12 @@ function SubCategoryProducts({ sub, mainCategory, onBack }) {
 
   useEffect(() => {
     setLoading(true);
-    const params = { category_id: mainCategory.apiCategoryId };
-    if (sub.searchHint) params.q = sub.searchHint;
     api
-      .products(params)
+      .products({ category_id: sub.id })
       .then(setProducts)
       .catch(() => setProducts([]))
       .finally(() => setLoading(false));
-  }, [sub.id, mainCategory.apiCategoryId, sub.searchHint]);
+  }, [sub.id]);
 
   const handleAddCart = async (product) => {
     const cart = await api.cart().catch(() => ({ items: [] }));
@@ -324,10 +173,11 @@ function SubCategoryProducts({ sub, mainCategory, onBack }) {
         </button>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[15px] font-semibold text-neutral-900">{sub.name}</p>
-          <p className="truncate text-[11px] text-neutral-500">{mainCategory.name}</p>
+          {sub.parentName && (
+            <p className="truncate text-[11px] text-neutral-500">{sub.parentName}</p>
+          )}
         </div>
       </header>
-
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 pb-nav-safe">
         {loading ? (
           <div className="flex justify-center py-16">
@@ -345,46 +195,81 @@ function SubCategoryProducts({ sub, mainCategory, onBack }) {
   );
 }
 
-/**
- * Katalog — Uzum/Xitoy uslubidagi split-layout (chap sidebar + o'ng grid).
- */
 export default function CatalogPage() {
-  const [activeMainId, setActiveMainId] = useState(CATALOG_TREE[0].id);
+  const [categories, setCategories] = useState([]);
+  const [allFlat, setAllFlat] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeMainId, setActiveMainId] = useState(null);
   const [selectedSub, setSelectedSub] = useState(null);
   const { haptic } = useTelegram();
 
+  useEffect(() => {
+    api
+      .categories()
+      .then((data) => {
+        const flat = Array.isArray(data) ? data : [];
+        const parents = flat
+          .filter((c) => !c.parent_id)
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        setAllFlat(flat);
+        setCategories(parents);
+        if (parents.length > 0) setActiveMainId(parents[0].id);
+      })
+      .catch(() => setCategories([]))
+      .finally(() => setLoading(false));
+  }, []);
+
   const activeMain = useMemo(
-    () => CATALOG_TREE.find((c) => c.id === activeMainId) ?? CATALOG_TREE[0],
-    [activeMainId]
+    () => categories.find((c) => c.id === activeMainId) ?? null,
+    [categories, activeMainId]
   );
 
-  const backToGrid = () => {
+  const subcategories = useMemo(() => {
+    if (!activeMainId) return [];
+    return allFlat
+      .filter((c) => c.parent_id === activeMainId)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  }, [allFlat, activeMainId]);
+
+  const backToGrid = useCallback(() => {
     haptic('light');
     setSelectedSub(null);
-  };
+  }, [haptic]);
 
-  // Sub-kategoriya ochiq bo'lganda Telegram back button uni yopsin
   useEffect(() => {
     if (selectedSub) {
       window.__tgBackHandler = backToGrid;
       return () => { window.__tgBackHandler = null; };
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSub]);
+  }, [selectedSub, backToGrid]);
 
   const openSub = (sub) => {
     haptic('light');
-    setSelectedSub(sub);
+    setSelectedSub({ ...sub, parentName: activeMain?.name });
+  };
+
+  const openAll = () => {
+    haptic('light');
+    setSelectedSub({
+      id: activeMainId,
+      name: `${activeMain?.name} — Hammasi`,
+      icon: activeMain?.icon,
+      parentName: null,
+    });
   };
 
   if (selectedSub) {
     return (
       <div className="flex h-full flex-col bg-white">
-        <SubCategoryProducts
-          sub={selectedSub}
-          mainCategory={activeMain}
-          onBack={backToGrid}
-        />
+        <SubCategoryProducts sub={selectedSub} onBack={backToGrid} />
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-full items-center justify-center bg-neutral-100">
+        <div className="h-9 w-9 animate-spin rounded-full border-2 border-ios-blue border-t-transparent" />
       </div>
     );
   }
@@ -393,24 +278,66 @@ export default function CatalogPage() {
     <div className="flex h-full min-h-0 flex-col bg-neutral-100">
       <div className="flex min-h-0 flex-1">
         <CategorySidebar
-          activeMainId={activeMainId}
+          categories={categories}
+          activeId={activeMainId}
           onSelect={(id) => {
             haptic('light');
             setActiveMainId(id);
           }}
         />
 
-        {/* O'ng panel — tanlangan kategoriyaning sub-kategoriyalari */}
         <main
           className="min-w-0 flex-1 overflow-y-auto bg-white px-3 pb-nav-safe pt-3"
           aria-label="Sub-kategoriyalar"
         >
-          <h1 className="mb-3 text-[17px] font-bold text-neutral-900">{activeMain.name}</h1>
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-3">
-            {activeMain.subcategories.map((sub) => (
-              <SubCategoryCard key={sub.id} sub={sub} onOpen={() => openSub(sub)} />
-            ))}
-          </div>
+          <h1 className="mb-3 text-[17px] font-bold text-neutral-900">
+            {activeMain?.name ?? ''}
+          </h1>
+
+          {subcategories.length === 0 ? (
+            <div
+              className="press-fluid flex flex-col items-center gap-2 text-center"
+              role="button"
+              tabIndex={0}
+              onClick={openAll}
+              onKeyDown={(e) => e.key === 'Enter' && openAll()}
+            >
+              <div
+                className={`aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-br ${gradientForIndex(
+                  0
+                )} flex items-center justify-center ring-1 ring-white/20`}
+              >
+                <span className="text-3xl drop-shadow">{activeMain?.icon || '📦'}</span>
+              </div>
+              <span className="line-clamp-2 px-0.5 text-[12px] font-medium leading-snug text-neutral-800">
+                Hammasi
+              </span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={openAll}
+                className="press-fluid flex flex-col items-center gap-2 text-center"
+              >
+                <div className="aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center ring-1 ring-white/20">
+                  <span className="text-2xl drop-shadow">🗂️</span>
+                </div>
+                <span className="line-clamp-2 px-0.5 text-[12px] font-medium leading-snug text-neutral-800">
+                  Hammasi
+                </span>
+              </button>
+
+              {subcategories.map((sub, i) => (
+                <SubCategoryCard
+                  key={sub.id}
+                  sub={sub}
+                  index={i}
+                  onOpen={() => openSub(sub)}
+                />
+              ))}
+            </div>
+          )}
         </main>
       </div>
     </div>

@@ -197,8 +197,14 @@ async def products(
         conditions.append("(name LIKE ? OR description LIKE ?)")
         params.extend([f"%{q}%", f"%{q}%"])
     if category_id:
-        conditions.append("category_id = ?")
-        params.append(category_id)
+        child_rows = await fetch(
+            "SELECT id FROM categories WHERE parent_id = ?", category_id
+        )
+        child_ids = [r["id"] for r in child_rows]
+        all_ids = [category_id] + child_ids
+        placeholders = ",".join("?" * len(all_ids))
+        conditions.append(f"category_id IN ({placeholders})")
+        params.extend(all_ids)
     if discount_only:
         conditions.append("is_discount = 1")
     if featured_only:
