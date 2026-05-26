@@ -46,11 +46,28 @@ async def _init_schema(db: aiosqlite.Connection):
     schema_path = Path(__file__).resolve().parent.parent / "database" / "init_sqlite.sql"
     await db.executescript(schema_path.read_text(encoding="utf-8"))
     await _migrate_schema(db)
-    count = await fetchval("SELECT COUNT(*) FROM categories")
-    if count == 0:
+    cat_count = await fetchval("SELECT COUNT(*) FROM categories")
+    if cat_count == 0:
         await _seed(db)
+    else:
+        # Kategoriyalar bor bo'lsa ham bannerlarni alohida seed qilamiz
+        banner_count = await fetchval("SELECT COUNT(*) FROM banners")
+        if banner_count == 0:
+            await _seed_banners(db)
     await _seed_catalog_products(db)
     await db.commit()
+
+
+async def _seed_banners(db: aiosqlite.Connection):
+    banners = [
+        ("Yozgi chegirmalar", "50% gacha chegirma", "https://images.unsplash.com/photo-1607082349566-187342175e2f?w=800", 1),
+        ("Yangi mahsulotlar", "Eng so'nggi modellar", "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800", 2),
+        ("Bepul yetkazib berish", "100 000 so'mdan yuqori buyurtmalarda", "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=800", 3),
+    ]
+    await db.executemany(
+        "INSERT INTO banners (title, subtitle, image_url, sort_order) VALUES (?, ?, ?, ?)",
+        banners,
+    )
 
 
 async def _seed(db: aiosqlite.Connection):
