@@ -33,6 +33,14 @@ async def _migrate_schema(db: aiosqlite.Connection):
             "ALTER TABLE users ADD COLUMN is_registered INTEGER DEFAULT 0"
         )
 
+    # stories jadvalida media_type ustuni bo'lmasa qo'shish
+    cur = await db.execute("PRAGMA table_info(stories)")
+    story_cols = {row[1] for row in await cur.fetchall()}
+    if story_cols and "media_type" not in story_cols:
+        await db.execute(
+            "ALTER TABLE stories ADD COLUMN media_type TEXT DEFAULT 'image'"
+        )
+
 
 async def _init_schema(db: aiosqlite.Connection):
     schema_path = Path(__file__).resolve().parent.parent / "database" / "init_sqlite.sql"

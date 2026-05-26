@@ -28,6 +28,22 @@ function getHeaders() {
   return headers;
 }
 
+function getTelegramHeaders() {
+  const headers = {};
+  const user = WebApp.initDataUnsafe?.user;
+  if (user?.id) {
+    headers['X-Telegram-User-Id'] = String(user.id);
+    if (user.username) headers['X-Telegram-Username'] = user.username;
+    if (user.first_name) headers['X-Telegram-First-Name'] = user.first_name;
+    if (user.last_name) headers['X-Telegram-Last-Name'] = user.last_name;
+  } else if (!WebApp.initData) {
+    headers['X-Telegram-User-Id'] = '123456789';
+    headers['X-Telegram-First-Name'] = 'Test';
+    headers['X-Telegram-Username'] = 'testuser';
+  }
+  return headers;
+}
+
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`;
   const res = await fetch(url, {
@@ -71,6 +87,23 @@ export const api = {
     request('/api/profile', { method: 'PATCH', body: JSON.stringify(data) }),
   createOrder: (data) =>
     request('/api/orders', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Hikoyalar (Stories)
+  getStories: () => request('/api/stories'),
+  uploadStory: (formData) => {
+    const url = `${API_BASE}/api/stories/upload`;
+    return fetch(url, {
+      method: 'POST',
+      headers: getTelegramHeaders(),
+      body: formData,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      return res.json();
+    });
+  },
 };
 
 export function formatPrice(n) {

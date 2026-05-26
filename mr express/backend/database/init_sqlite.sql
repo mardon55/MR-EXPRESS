@@ -87,3 +87,22 @@ CREATE TABLE IF NOT EXISTS reels (
     is_active INTEGER DEFAULT 1,
     created_at TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS stories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER REFERENCES users(id),
+    name TEXT NOT NULL DEFAULT 'Hikoya',
+    image_url TEXT NOT NULL,
+    media_type TEXT DEFAULT 'image',
+    is_active INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    message TEXT,
+    is_read INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+);

@@ -1,7 +1,9 @@
 import logging
 import os
 import shutil
+import uuid
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Header, HTTPException, Query, UploadFile, File
@@ -13,7 +15,11 @@ router = APIRouter(prefix="/api")
 logger = logging.getLogger(__name__)
 
 ORDER_STATUS_ACTIVE = "Aktiv"
-UPLOAD_DIR = "uploads/stories"
+# Absolyut yo'l — qaysi papkadan ishga tushirilganidan qat'iy nazar
+UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads" / "stories"
+
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+ALLOWED_VIDEO_TYPES = {"video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"}
 
 
 def _user_id_header(x_telegram_user_id: str | None) -> int:
@@ -490,23 +496,18 @@ async def create_order(
 
 @router.get("/stories")
 async def get_stories():
-    """Bazadagi barcha faol hikoyalarni o'qib beradi"""
-    try:
-        rows = await fetch(
-            "SELECT id, name, image_url, 0 as seen FROM stories WHERE is_active = 1 ORDER BY id DESC"
-        )
-        if not rows:
-            return [
-                {"id": 991, "name": "MR Express", "image_url": "https://images.unsplash.com/photo-1607082349566-187342175e2f?w=256", "seen": 0},
-                {"id": 992, "name": "Chegirmalar", "image_url": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=256", "seen": 0}
-            ]
-        return rows
-    except Exception as e:
-        logger.warning("Stories xatosi (Mock qaytarildi): %s", e)
-        return [
-            {"id": 991, "name": "MR Express", "image_url": "https://images.unsplash.com/photo-1607082349566-187342175e2f?w=256", "seen": 0},
-            {"id": 992, "name": "Chegirmalar", "image_url": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=256", "seen": 0}
-        ]
+    """Bazadagi barcha faol hikoyalarni o'qib beradi (rasm + video)"""
+    rows = await fetch(
+        """
+        SELECT id, name, image_url,
+               COALESCE(media_type, 'image') as media_type,
+               0 as seen
+        FROM stories
+        WHERE is_active = 1
+        ORDER BY id DESC
+        """
+    )
+    return rows if rows else []
 
 
 @router.post("/stories/upload")
@@ -514,34 +515,35 @@ async def upload_story(
     file: UploadFile = File(...),
     x_telegram_user_id: str = Header(..., alias="X-Telegram-User-Id"),
 ):
-    """Foydalanuvchi yuklagan rasmni qabul qilib, server papkasiga va bazaga yozadi"""
+    """Foydalanuvchi yuklagan rasm yoki videoni qabul qilib, serverga va bazaga saqlaydi"""
     tid = _user_id_header(x_telegram_user_id)
     uid = await _db_user_id(tid)
-    
-    if not file.content_type.startswith("image/"):
-        raise HTTPException(400, "Faqat rasm yuklash ruxsat etilgan")
 
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    
-    clean_filename = "".join(c for c in file.filename if c.isalnum() or c in "._-")
-    file_name = f"story_{uid}_{clean_filename}"
-    file_path = os.path.join(UPLOAD_DIR, file_name)
-    
+    content_type = file.content_type or ""
+    if content_type in ALLOWED_IMAGE_TYPES or content_type.startswith("image/"):
+        media_type = "image"
+    elif content_type in ALLOWED_VIDEO_TYPES or content_type.startswith("video/"):
+        media_type = "video"
+    else:
+        raise HTTPException(400, f"Rasm yoki video fayl yuklang (qabul qilinmagan tur: {content_type})")
+
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+    ext = Path(file.filename or "file").suffix or (".jpg" if media_type == "image" else ".mp4")
+    file_name = f"story_{uid}_{uuid.uuid4().hex[:8]}{ext}"
+    file_path = UPLOAD_DIR / file_name
+
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-        
-    image_url = f"/uploads/stories/{file_name}"
-    
-    user_row = await fetchrow("SELECT first_name FROM users WHERE id = ?", uid)
-    user_name = user_row["first_name"] if user_row and user_row["first_name"] else "Mijoz"
-    
-    try:
-        await execute(
-            "INSERT INTO stories (user_id, name, image_url, is_active) VALUES (?, ?, ?, 1)",
-            uid, user_name, image_url
-        )
-    except Exception as e:
-        logger.error("Stories SQL xatosi: %s", e)
-        return {"ok": True, "image_url": "https://images.unsplash.com/photo-1607082349566-187342175e2f?w=256", "note": "SQL skip"}
 
-    return {"ok": True, "image_url": image_url}
+    media_url = f"/uploads/stories/{file_name}"
+
+    user_row = await fetchrow("SELECT first_name FROM users WHERE id = ?", uid)
+    user_name = (user_row["first_name"] if user_row and user_row["first_name"] else None) or "Mijoz"
+
+    await execute(
+        "INSERT INTO stories (user_id, name, image_url, media_type, is_active) VALUES (?, ?, ?, ?, 1)",
+        uid, user_name, media_url, media_type,
+    )
+
+    return {"ok": True, "image_url": media_url, "media_type": media_type}
