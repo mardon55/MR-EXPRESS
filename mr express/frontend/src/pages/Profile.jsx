@@ -16,13 +16,11 @@ import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { useTelegram } from '../hooks/useTelegram';
 import PageHeader from '../components/PageHeader';
-import ProfileEditSheet from '../components/profile/ProfileEditSheet';
 import ThemePicker from '../components/profile/ThemePicker';
 import NightMarket from '../components/profile/NightMarket';
 import {
   IconCargoCalc,
   IconChevronRight,
-  IconEdit,
   IconGroupBuy,
   IconPromo,
   IconHelp,
@@ -683,13 +681,12 @@ function HelpView({ onBack, tg }) {
 }
 
 export default function Profile() {
-  const { user: sessionUser, updateUser } = useApp();
+  const { user: sessionUser } = useApp();
   const { theme, saveTheme, hasUnsavedChanges } = useTheme();
   const { user: tgUser, tg } = useTelegram();
   const location = useLocation();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
-  const [editOpen, setEditOpen] = useState(false);
   const [section, setSection] = useState(null);
   const [savingTheme, setSavingTheme] = useState(false);
 
@@ -830,31 +827,7 @@ export default function Profile() {
           />
         </nav>
 
-        <div className="flex-1" />
-
-        <button
-          type="button"
-          onClick={() => setEditOpen(true)}
-          className="press-fluid mt-2 flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-theme bg-theme-card py-2.5 text-[14px] font-semibold text-theme shadow-theme-sm"
-        >
-          <IconEdit />
-          Profilni tahrirlash
-        </button>
       </div>
-
-      <ProfileEditSheet
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        profile={displayProfile}
-        onSaved={(p) => {
-          setProfile(p);
-          updateUser({
-            first_name: p.first_name,
-            last_name: p.last_name,
-            phone: p.phone,
-          });
-        }}
-      />
     </>
   );
 }
