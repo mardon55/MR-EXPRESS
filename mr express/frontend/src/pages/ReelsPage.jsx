@@ -85,20 +85,20 @@ function ReelSlide({ item, isMuted, onToggleMute, onAddToCart, adding }) {
       />
 
       {/* O'ng tomon — faqat yurakcha va savatcha */}
-      <div className="absolute bottom-[calc(6rem+env(safe-area-inset-bottom,0px))] right-3 z-10 flex flex-col items-center gap-4">
+      <div className="absolute bottom-[calc(env(safe-area-inset-bottom,20px)+5.5rem)] right-3 z-10 flex flex-col items-center gap-3">
         {/* Yurakcha tugmasi */}
         <button
           type="button"
           onClick={handleLike}
-          className="press-fluid flex flex-col items-center gap-1 rounded-full bg-black/40 p-2.5 backdrop-blur-sm"
+          className="press-fluid flex flex-col items-center gap-0.5 rounded-full bg-black/40 p-2 backdrop-blur-sm"
           aria-label="Layk"
         >
           <Heart
-            className={`h-7 w-7 transition-colors ${liked ? 'fill-red-500 text-red-500' : 'text-white'}`}
+            className={`h-6 w-6 transition-colors ${liked ? 'fill-red-500 text-red-500' : 'text-white'}`}
             strokeWidth={2}
           />
           {likeCount > 0 && (
-            <span className="text-[11px] font-semibold text-white">
+            <span className="text-[10px] font-semibold text-white">
               {likeCount > 999 ? `${(likeCount / 1000).toFixed(1)}k` : likeCount}
             </span>
           )}
@@ -109,7 +109,7 @@ function ReelSlide({ item, isMuted, onToggleMute, onAddToCart, adding }) {
           type="button"
           onClick={handleCart}
           disabled={adding || !product}
-          className={`press-fluid flex flex-col items-center gap-1 rounded-full p-2.5 backdrop-blur-sm transition-colors ${
+          className={`press-fluid flex flex-col items-center gap-0.5 rounded-full p-2 backdrop-blur-sm transition-colors ${
             added
               ? 'bg-emerald-500/80'
               : 'bg-black/40'
@@ -117,32 +117,32 @@ function ReelSlide({ item, isMuted, onToggleMute, onAddToCart, adding }) {
           aria-label="Savatchaga qo'shish"
         >
           <ShoppingCart
-            className={`h-7 w-7 ${added ? 'text-white' : 'text-white'}`}
+            className="h-6 w-6 text-white"
             strokeWidth={2}
           />
-          <span className="text-[11px] font-semibold text-white">
+          <span className="text-[10px] font-semibold text-white">
             {adding ? '...' : added ? '✓' : 'Savat'}
           </span>
         </button>
       </div>
 
-      {/* Pastki — faqat mahsulot nomi va narxi */}
-      <div className="absolute bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] left-3 right-14 z-10">
-        <div className="flex items-center gap-3 rounded-2xl border border-white/15 bg-black/50 p-3 backdrop-blur-md">
+      {/* Pastki — ixcham mahsulot nomi va narxi */}
+      <div className="absolute bottom-[calc(env(safe-area-inset-bottom,20px)+4.75rem)] left-3 right-[5rem] z-10">
+        <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-black/50 p-2 backdrop-blur-md">
           {product?.image_url ? (
             <img
               src={product.image_url}
               alt=""
-              className="h-12 w-12 shrink-0 rounded-xl object-cover ring-1 ring-white/20"
+              className="h-9 w-9 shrink-0 rounded-lg object-cover ring-1 ring-white/20"
             />
           ) : (
-            <div className="h-12 w-12 shrink-0 rounded-xl bg-white/10" />
+            <div className="h-9 w-9 shrink-0 rounded-lg bg-white/10" />
           )}
           <div className="min-w-0 flex-1">
-            <p className="line-clamp-1 text-[13px] font-semibold text-white">
+            <p className="line-clamp-1 text-[12px] font-semibold text-white">
               {product?.name || 'Mahsulot'}
             </p>
-            <p className="mt-0.5 text-[14px] font-bold text-emerald-400">
+            <p className="text-[12px] font-bold text-emerald-400">
               {displayPrice.toLocaleString('uz-UZ')} so&apos;m
             </p>
           </div>
