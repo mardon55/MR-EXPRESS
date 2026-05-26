@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Clapperboard, Heart, ShoppingBag, VolumeX, Volume2 } from 'lucide-react';
+import { Clapperboard, Heart, ShoppingCart } from 'lucide-react';
 import { api } from '../api';
 import { useApp } from '../context/AppContext';
 import { useTelegram } from '../hooks/useTelegram';
@@ -53,7 +53,7 @@ function ReelSlide({ item, isMuted, onToggleMute, onAddToCart, adding }) {
   };
 
   const handleCart = async () => {
-    if (adding || added) return;
+    if (adding || added || !product) return;
     await onAddToCart(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -78,24 +78,15 @@ function ReelSlide({ item, isMuted, onToggleMute, onAddToCart, adding }) {
         onClick={onToggleMute}
       />
 
-      {/* Qorong'ilik gradient */}
+      {/* Gradient */}
       <div
         className="pointer-events-none absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black/85 via-black/30 to-transparent"
         aria-hidden
       />
 
-      {/* Ovoz indikatori — ekran yuqori chap */}
-      <div className="pointer-events-none absolute left-3 top-3 z-10">
-        {isMuted ? (
-          <div className="flex items-center gap-1 rounded-full bg-black/40 px-2 py-1 backdrop-blur-sm">
-            <VolumeX className="h-3.5 w-3.5 text-white/70" strokeWidth={2} />
-            <span className="text-[10px] text-white/70">Ovoz o'chiq</span>
-          </div>
-        ) : null}
-      </div>
-
-      {/* O'ng tomonda — faqat yurakcha */}
+      {/* O'ng tomon — faqat yurakcha va savatcha */}
       <div className="absolute bottom-[calc(6rem+env(safe-area-inset-bottom,0px))] right-3 z-10 flex flex-col items-center gap-4">
+        {/* Yurakcha tugmasi */}
         <button
           type="button"
           onClick={handleLike}
@@ -112,9 +103,30 @@ function ReelSlide({ item, isMuted, onToggleMute, onAddToCart, adding }) {
             </span>
           )}
         </button>
+
+        {/* Savatcha tugmasi */}
+        <button
+          type="button"
+          onClick={handleCart}
+          disabled={adding || !product}
+          className={`press-fluid flex flex-col items-center gap-1 rounded-full p-2.5 backdrop-blur-sm transition-colors ${
+            added
+              ? 'bg-emerald-500/80'
+              : 'bg-black/40'
+          } disabled:opacity-50`}
+          aria-label="Savatchaga qo'shish"
+        >
+          <ShoppingCart
+            className={`h-7 w-7 ${added ? 'text-white' : 'text-white'}`}
+            strokeWidth={2}
+          />
+          <span className="text-[11px] font-semibold text-white">
+            {adding ? '...' : added ? '✓' : 'Savat'}
+          </span>
+        </button>
       </div>
 
-      {/* Pastki qism — mahsulot + savatcha */}
+      {/* Pastki — faqat mahsulot nomi va narxi */}
       <div className="absolute bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] left-3 right-14 z-10">
         <div className="flex items-center gap-3 rounded-2xl border border-white/15 bg-black/50 p-3 backdrop-blur-md">
           {product?.image_url ? (
@@ -128,23 +140,12 @@ function ReelSlide({ item, isMuted, onToggleMute, onAddToCart, adding }) {
           )}
           <div className="min-w-0 flex-1">
             <p className="line-clamp-1 text-[13px] font-semibold text-white">
-              {product?.name}
+              {product?.name || 'Mahsulot'}
             </p>
             <p className="mt-0.5 text-[14px] font-bold text-emerald-400">
               {displayPrice.toLocaleString('uz-UZ')} so&apos;m
             </p>
           </div>
-          <button
-            type="button"
-            disabled={adding}
-            onClick={handleCart}
-            className={`press-fluid flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2.5 text-[12px] font-semibold text-white transition-colors ${
-              added ? 'bg-emerald-500' : 'bg-ios-blue'
-            } disabled:opacity-60`}
-          >
-            <ShoppingBag className="h-4 w-4" strokeWidth={2.25} />
-            {adding ? '...' : added ? '✓' : 'Savat'}
-          </button>
         </div>
       </div>
     </section>
