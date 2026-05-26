@@ -98,6 +98,15 @@ export const api = {
       body: JSON.stringify({ code }),
     }),
 
+  // Sharhlar (Reviews)
+  getReviews: (productId) => request(`/api/products/${productId}/reviews`),
+  canReview: (productId) => request(`/api/products/${productId}/can_review`),
+  createReview: (productId, data) =>
+    request(`/api/products/${productId}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   // Hikoyalar (Stories)
   getStories: () => request('/api/stories'),
   uploadStory: (formData) => {

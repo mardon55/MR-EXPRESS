@@ -41,6 +41,25 @@ async def _migrate_schema(db: aiosqlite.Connection):
             "ALTER TABLE stories ADD COLUMN media_type TEXT DEFAULT 'image'"
         )
 
+    # reviews jadvali mavjudligini tekshirish (eski bazalar uchun)
+    cur = await db.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='reviews'"
+    )
+    if not await cur.fetchone():
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS reviews (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+                comment TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                UNIQUE (product_id, user_id)
+            )
+            """
+        )
+
 
 async def _init_schema(db: aiosqlite.Connection):
     schema_path = Path(__file__).resolve().parent.parent / "database" / "init_sqlite.sql"

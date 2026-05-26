@@ -498,6 +498,116 @@ async def create_order(
 
 
 # =====================================================================
+# --- SHARHLAR (REVIEWS) TIZIMI ---
+# =====================================================================
+
+class ReviewCreate(BaseModel):
+    rating: int
+    comment: str | None = None
+
+
+@router.get("/products/{product_id}/reviews")
+async def get_reviews(product_id: int):
+    rows = await fetch(
+        """
+        SELECT r.id, r.rating, r.comment, r.created_at,
+               u.first_name, u.last_name, u.username
+        FROM reviews r
+        JOIN users u ON u.id = r.user_id
+        WHERE r.product_id = ?
+        ORDER BY r.created_at DESC
+        """,
+        product_id,
+    )
+    result = []
+    for r in rows:
+        first = r["first_name"] or ""
+        last = r["last_name"] or ""
+        name = f"{first} {last}".strip() or r["username"] or "Mijoz"
+        result.append({
+            "id": r["id"],
+            "rating": r["rating"],
+            "comment": r["comment"],
+            "created_at": r["created_at"],
+            "user_name": name,
+        })
+    return result
+
+
+@router.get("/products/{product_id}/can_review")
+async def can_review(
+    product_id: int,
+    x_telegram_user_id: str = Header(..., alias="X-Telegram-User-Id"),
+):
+    tid = _user_id_header(x_telegram_user_id)
+    uid = await _db_user_id(tid)
+
+    purchased = await fetchval(
+        """
+        SELECT 1 FROM order_items oi
+        JOIN orders o ON o.id = oi.order_id
+        WHERE o.user_id = ? AND oi.product_id = ?
+        LIMIT 1
+        """,
+        uid, product_id,
+    )
+    if not purchased:
+        return {"can_review": False, "reason": "not_purchased"}
+
+    already = await fetchval(
+        "SELECT 1 FROM reviews WHERE product_id = ? AND user_id = ?",
+        product_id, uid,
+    )
+    if already:
+        return {"can_review": False, "reason": "already_reviewed"}
+
+    return {"can_review": True, "reason": None}
+
+
+@router.post("/products/{product_id}/reviews")
+async def create_review(
+    product_id: int,
+    body: ReviewCreate,
+    x_telegram_user_id: str = Header(..., alias="X-Telegram-User-Id"),
+):
+    tid = _user_id_header(x_telegram_user_id)
+    uid = await _db_user_id(tid)
+
+    if not (1 <= body.rating <= 5):
+        raise HTTPException(400, "Baho 1 dan 5 gacha bo'lishi kerak")
+
+    purchased = await fetchval(
+        """
+        SELECT 1 FROM order_items oi
+        JOIN orders o ON o.id = oi.order_id
+        WHERE o.user_id = ? AND oi.product_id = ?
+        LIMIT 1
+        """,
+        uid, product_id,
+    )
+    if not purchased:
+        raise HTTPException(403, "Sharh yozish uchun mahsulotni sotib olgan bo'lishingiz kerak")
+
+    already = await fetchval(
+        "SELECT 1 FROM reviews WHERE product_id = ? AND user_id = ?",
+        product_id, uid,
+    )
+    if already:
+        raise HTTPException(409, "Siz bu mahsulotga allaqachon sharh yozgansiz")
+
+    product = await fetchrow("SELECT id FROM products WHERE id = ?", product_id)
+    if not product:
+        raise HTTPException(404, "Mahsulot topilmadi")
+
+    comment = body.comment.strip() if body.comment else None
+    await execute(
+        "INSERT INTO reviews (product_id, user_id, rating, comment) VALUES (?, ?, ?, ?)",
+        product_id, uid, body.rating, comment,
+    )
+    return {"ok": True}
+
+
+# =====================================================================
 # --- PROMOKOD VA YETKAZIB BERISH ENDPOINTLARI ---
 # =====================================================================
 
