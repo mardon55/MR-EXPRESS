@@ -125,11 +125,22 @@ function SubCategoryCard({ sub, index, onOpen }) {
       className="press-fluid flex flex-col items-center gap-2 text-center"
     >
       <div
-        className={`aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-br ${gradientForIndex(
-          index
-        )} flex items-center justify-center ring-1 ring-white/20`}
+        className={`aspect-square w-full overflow-hidden rounded-2xl ring-1 ring-white/20 ${
+          sub.image_url
+            ? 'bg-neutral-100'
+            : `bg-gradient-to-br ${gradientForIndex(index)} flex items-center justify-center`
+        }`}
       >
-        <span className="text-3xl drop-shadow">{sub.icon || '📦'}</span>
+        {sub.image_url ? (
+          <img
+            src={sub.image_url}
+            alt={sub.name}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <span className="text-3xl drop-shadow">{sub.icon || '📦'}</span>
+        )}
       </div>
       <span className="line-clamp-2 px-0.5 text-[12px] font-medium leading-snug text-neutral-800">
         {sub.name}
