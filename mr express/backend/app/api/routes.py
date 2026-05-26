@@ -446,6 +446,7 @@ async def create_order(
             raise HTTPException(400, "Telefon raqam noto'g'ri") from None
 
     db = await get_db()
+    await db.commit()
     await db.execute("BEGIN IMMEDIATE")
     try:
         cur = await db.execute(
@@ -541,7 +542,7 @@ async def upload_review_photos(
 async def get_reviews(product_id: int):
     rows = await fetch(
         """
-        SELECT r.id, r.rating, r.comment, r.photos, r.created_at,
+        SELECT r.id, r.rating, r.content, r.photos, r.created_at,
                u.first_name, u.last_name, u.username
         FROM reviews r
         JOIN users u ON u.id = r.user_id
@@ -562,7 +563,7 @@ async def get_reviews(product_id: int):
         result.append({
             "id": r["id"],
             "rating": r["rating"],
-            "comment": r["comment"],
+            "comment": r["content"],
             "photos": photos,
             "created_at": r["created_at"],
             "user_name": name,
@@ -582,7 +583,8 @@ async def can_review(
         """
         SELECT 1 FROM order_items oi
         JOIN orders o ON o.id = oi.order_id
-        WHERE o.user_id = ? AND oi.product_id = ? AND o.status = 'Yetkazildi'
+        WHERE o.user_id = ? AND oi.product_id = ?
+          AND (o.status = 'Yetkazildi' OR o.status = 'delivered')
         LIMIT 1
         """,
         uid, product_id,
@@ -616,7 +618,8 @@ async def create_review(
         """
         SELECT 1 FROM order_items oi
         JOIN orders o ON o.id = oi.order_id
-        WHERE o.user_id = ? AND oi.product_id = ? AND o.status = 'Yetkazildi'
+        WHERE o.user_id = ? AND oi.product_id = ?
+          AND (o.status = 'Yetkazildi' OR o.status = 'delivered')
         LIMIT 1
         """,
         uid, product_id,
@@ -638,11 +641,11 @@ async def create_review(
     if len(body.photos) > 6:
         raise HTTPException(400, "Maksimal 6 ta rasm yuklanishi mumkin")
 
-    comment = body.comment.strip() if body.comment else None
+    content = body.comment.strip() if body.comment else None
     photos_json = json.dumps(body.photos)
     await execute(
-        "INSERT INTO reviews (product_id, user_id, rating, comment, photos) VALUES (?, ?, ?, ?, ?)",
-        product_id, uid, body.rating, comment, photos_json,
+        "INSERT INTO reviews (user_id, product_id, rating, content, photos) VALUES (?, ?, ?, ?, ?)",
+        uid, product_id, body.rating, content, photos_json,
     )
     return {"ok": True}
 
