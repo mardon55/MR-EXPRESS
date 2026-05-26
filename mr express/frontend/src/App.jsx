@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 import LiquidBackground from './components/LiquidBackground';
 import { AppProvider, useApp } from './context/AppContext';
@@ -42,6 +42,35 @@ function initTelegramFullscreen() {
   return tg;
 }
 
+/** Telegram orqa tugmasi — bosh sahifada yashirin, boshqalarda ko'rinadi */
+function TelegramBackButton() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isHome = location.pathname === '/';
+
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    if (!tg?.BackButton) return;
+
+    if (isHome) {
+      tg.BackButton.hide();
+    } else {
+      tg.BackButton.show();
+    }
+
+    const handleBack = () => {
+      navigate(-1);
+    };
+
+    tg.BackButton.onClick(handleBack);
+    return () => {
+      tg.BackButton.offClick(handleBack);
+    };
+  }, [isHome, navigate]);
+
+  return null;
+}
+
 function Layout() {
   const { loading } = useApp();
   const location = useLocation();
@@ -62,6 +91,7 @@ function Layout() {
   // Registratsiya va AuthGate cheklovlari butunlay o'chirildi. Ilova srazu asosiy qismga o'tadi.
   return (
     <div className={`relative flex min-h-0 flex-1 flex-col ${isReels ? 'bg-black' : ''}`}>
+      <TelegramBackButton />
       <main className={`app-main ${isReels ? 'bg-black' : ''}`}>
         <Routes>
           <Route path="/" element={<Home />} />
