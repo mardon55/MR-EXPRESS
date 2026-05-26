@@ -20,24 +20,37 @@ export default function SearchOverlay({ open, onClose }) {
   const [loading, setLoading] = useState(false);
   const inputRef = useRef(null);
   const { refreshCart } = useApp();
-  const { haptic } = useTelegram();
+  const { haptic, tg } = useTelegram();
   const debouncedQuery = useDebounce(query, 350);
 
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+
+    setQuery('');
+    setResults(null);
+    setTimeout(() => inputRef.current?.focus(), 80);
+
+    const handleClose = () => {
       setQuery('');
       setResults(null);
-      setTimeout(() => inputRef.current?.focus(), 80);
-      window.__tgBackHandler = () => {
-        setQuery('');
-        setResults(null);
-        onClose();
-      };
-      return () => {
-        window.__tgBackHandler = null;
-      };
+      onClose();
+    };
+
+    if (tg?.BackButton) {
+      tg.BackButton.show();
+      tg.BackButton.onClick(handleClose);
     }
-  }, [open, onClose]);
+
+    window.__tgBackHandler = handleClose;
+
+    return () => {
+      window.__tgBackHandler = null;
+      if (tg?.BackButton) {
+        tg.BackButton.offClick(handleClose);
+        tg.BackButton.hide();
+      }
+    };
+  }, [open, onClose, tg]);
 
   useEffect(() => {
     if (!debouncedQuery.trim()) {
