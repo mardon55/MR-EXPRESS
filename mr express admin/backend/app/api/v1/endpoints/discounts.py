@@ -42,6 +42,15 @@ def _parse_days(raw: str | None) -> list[int]:
 
 async def _deactivate_expired():
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    expired = await db.fetch(
+        """
+        SELECT id, scope_type, scope_id, percent FROM discounts
+        WHERE valid_to IS NOT NULL AND valid_to < ? AND is_active = 1
+        """,
+        now,
+    )
+    for row in expired:
+        await _remove_discount_from_products(row["scope_type"], row["scope_id"], row["id"])
     await db.execute(
         """
         UPDATE discounts SET is_active = 0
@@ -51,11 +60,78 @@ async def _deactivate_expired():
     )
 
 
+async def _get_product_ids(scope_type: str, scope_id: int | None) -> list[int]:
+    if scope_type == "product" and scope_id:
+        rows = await db.fetch("SELECT id FROM products WHERE id = ?", scope_id)
+    elif scope_type == "category" and scope_id:
+        rows = await db.fetch("SELECT id FROM products WHERE category_id = ?", scope_id)
+    else:
+        rows = await db.fetch("SELECT id FROM products")
+    return [r["id"] for r in rows]
+
+
+async def _apply_discount_to_products(scope_type: str, scope_id: int | None, percent: float):
+    product_ids = await _get_product_ids(scope_type, scope_id)
+    for pid in product_ids:
+        product = await db.fetchrow("SELECT id, price, old_price FROM products WHERE id = ?", pid)
+        if not product:
+            continue
+        price = float(product["price"])
+        old_price = product["old_price"]
+        if old_price is None:
+            discounted = round(price * (1 - percent / 100))
+            await db.execute(
+                "UPDATE products SET is_discount = 1, old_price = ?, price = ? WHERE id = ?",
+                price,
+                discounted,
+                pid,
+            )
+        else:
+            await db.execute(
+                "UPDATE products SET is_discount = 1 WHERE id = ?",
+                pid,
+            )
+
+
+async def _remove_discount_from_products(scope_type: str, scope_id: int | None, discount_id: int):
+    product_ids = await _get_product_ids(scope_type, scope_id)
+    for pid in product_ids:
+        still_covered = await db.fetchval(
+            """
+            SELECT 1 FROM discounts
+            WHERE is_active = 1 AND id != ?
+            AND (
+                scope_type = 'all'
+                OR (scope_type = 'product' AND scope_id = ?)
+                OR (scope_type = 'category' AND scope_id = (SELECT category_id FROM products WHERE id = ?))
+            )
+            """,
+            discount_id,
+            pid,
+            pid,
+        )
+        if not still_covered:
+            product = await db.fetchrow("SELECT price, old_price FROM products WHERE id = ?", pid)
+            if not product:
+                continue
+            old_price = product["old_price"]
+            if old_price is not None:
+                await db.execute(
+                    "UPDATE products SET is_discount = 0, price = ?, old_price = NULL WHERE id = ?",
+                    float(old_price),
+                    pid,
+                )
+            else:
+                await db.execute(
+                    "UPDATE products SET is_discount = 0 WHERE id = ?",
+                    pid,
+                )
+
+
 def _discount_item(row: dict) -> dict:
     scope_name = None
     if row.get("scope_type") == "category" and row.get("scope_id"):
-        cat = row.get("_scope_name")
-        scope_name = cat
+        scope_name = row.get("_scope_name")
     elif row.get("scope_type") == "product" and row.get("scope_id"):
         scope_name = row.get("_scope_name")
 
@@ -109,6 +185,8 @@ async def create_discount(body: DiscountBody):
         body.scope_id,
         int(body.is_active),
     )
+    if body.is_active:
+        await _apply_discount_to_products(body.scope_type, body.scope_id, body.percent)
     row = await db.fetchrow("SELECT * FROM discounts WHERE id = ?", discount_id)
     return {"item": _discount_item(row)}
 
@@ -118,6 +196,11 @@ async def patch_discount(discount_id: int, body: DiscountPatch):
     row = await db.fetchrow("SELECT * FROM discounts WHERE id = ?", discount_id)
     if not row:
         raise HTTPException(404, "Chegirma topilmadi")
+
+    was_active = bool(row["is_active"])
+    current_scope_type = row["scope_type"]
+    current_scope_id = row["scope_id"]
+    current_percent = float(row["percent"])
 
     fields = []
     params: list = []
@@ -139,13 +222,32 @@ async def patch_discount(discount_id: int, body: DiscountPatch):
         )
 
     updated = await db.fetchrow("SELECT * FROM discounts WHERE id = ?", discount_id)
+    new_active = bool(updated["is_active"])
+    new_scope_type = updated["scope_type"]
+    new_scope_id = updated["scope_id"]
+    new_percent = float(updated["percent"])
+
+    if not was_active and new_active:
+        await _apply_discount_to_products(new_scope_type, new_scope_id, new_percent)
+    elif was_active and not new_active:
+        await _remove_discount_from_products(current_scope_type, current_scope_id, discount_id)
+    elif was_active and new_active and (
+        current_scope_type != new_scope_type
+        or current_scope_id != new_scope_id
+        or current_percent != new_percent
+    ):
+        await _remove_discount_from_products(current_scope_type, current_scope_id, discount_id)
+        await _apply_discount_to_products(new_scope_type, new_scope_id, new_percent)
+
     return {"item": _discount_item(updated)}
 
 
 @router.delete("/{discount_id}")
 async def delete_discount(discount_id: int):
-    row = await db.fetchrow("SELECT id FROM discounts WHERE id = ?", discount_id)
+    row = await db.fetchrow("SELECT id, scope_type, scope_id, is_active FROM discounts WHERE id = ?", discount_id)
     if not row:
         raise HTTPException(404, "Chegirma topilmadi")
+    if bool(row["is_active"]):
+        await _remove_discount_from_products(row["scope_type"], row["scope_id"], discount_id)
     await db.execute("DELETE FROM discounts WHERE id = ?", discount_id)
     return {"ok": True}
