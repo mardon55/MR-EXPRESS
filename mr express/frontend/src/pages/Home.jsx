@@ -56,9 +56,6 @@ export default function Home() {
       <section className="mt-7">
         <div className="mb-3.5 flex items-center justify-between">
           <h2 className="text-lg font-bold tracking-tight text-theme">Chegirmalar</h2>
-          <span className="glass-subtle rounded-full px-3 py-1 text-xs font-semibold text-ios-red">
-            50% gacha
-          </span>
         </div>
         <div className="-mx-1 flex gap-3.5 overflow-x-auto hide-scrollbar px-1 pb-1">
           {discounts.map((p) => (
@@ -71,7 +68,7 @@ export default function Home() {
 
       <section className="mt-7">
         <h2 className="mb-3.5 text-lg font-bold tracking-tight text-theme">
-          Tavsiya etilgan
+          Barcha tovarlar
         </h2>
         <ProductGrid products={featured} onAddCart={handleAddCart} />
       </section>
