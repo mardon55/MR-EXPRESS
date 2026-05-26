@@ -21,22 +21,22 @@ function initTelegramFullscreen() {
   const tg = window.Telegram?.WebApp;
   if (!tg) return null;
 
-  tg.ready();
-  tg.expand();
+  try { tg.ready(); } catch {}
+  try { tg.expand(); } catch {}
 
   if (typeof tg.requestFullscreen === 'function') {
-    tg.requestFullscreen();
+    try { tg.requestFullscreen(); } catch {}
   }
 
   if (tg.setHeaderColor) {
-    tg.setHeaderColor(APP_THEME_COLOR);
+    try { tg.setHeaderColor(APP_THEME_COLOR); } catch {}
   }
   if (tg.setBackgroundColor) {
-    tg.setBackgroundColor(APP_THEME_COLOR);
+    try { tg.setBackgroundColor(APP_THEME_COLOR); } catch {}
   }
 
   if (typeof tg.disableVerticalSwipes === 'function') {
-    tg.disableVerticalSwipes();
+    try { tg.disableVerticalSwipes(); } catch {}
   }
 
   return tg;
