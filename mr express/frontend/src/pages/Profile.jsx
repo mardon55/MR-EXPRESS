@@ -482,16 +482,99 @@ function SubPage({ title, onBack, children }) {
   );
 }
 
-function OrdersView({ count, onBack }) {
+const ORDER_STATUS_LABEL = {
+  'Aktiv': 'Aktiv',
+  'aktiv': 'Aktiv',
+  'confirmed': 'Tasdiqlandi',
+  'processing': 'Jarayonda',
+  'on_the_way': "Yo'lda",
+  'in_uzbekistan': "O'zbekistonda",
+  'delivering': 'Yetkazilmoqda',
+  'delivered': 'Yetkazildi',
+  'yetkazildi': 'Yetkazildi',
+  'topshirildi': 'Yetkazildi',
+};
+
+const ORDER_STATUS_COLOR = {
+  'Aktiv': 'bg-amber-100 text-amber-700',
+  'aktiv': 'bg-amber-100 text-amber-700',
+  'confirmed': 'bg-blue-100 text-blue-700',
+  'processing': 'bg-amber-100 text-amber-700',
+  'on_the_way': 'bg-cyan-100 text-cyan-700',
+  'in_uzbekistan': 'bg-violet-100 text-violet-700',
+  'delivering': 'bg-indigo-100 text-indigo-700',
+  'delivered': 'bg-emerald-100 text-emerald-700',
+  'yetkazildi': 'bg-emerald-100 text-emerald-700',
+  'topshirildi': 'bg-emerald-100 text-emerald-700',
+};
+
+function statusLabel(s) { return ORDER_STATUS_LABEL[s] || s || 'Aktiv'; }
+function statusColor(s) { return ORDER_STATUS_COLOR[s] || 'bg-neutral-100 text-neutral-600'; }
+
+function formatOrderDate(dt) {
+  if (!dt) return '';
+  try {
+    const d = new Date(dt.replace(' ', 'T') + 'Z');
+    return d.toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  } catch { return dt; }
+}
+
+function OrdersView({ onBack }) {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    api.getOrders()
+      .then((data) => { setOrders(Array.isArray(data) ? data : []); })
+      .catch(() => setError("Buyurtmalarni yuklashda xato"))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <SubPage title="Buyurtmalarim" onBack={onBack}>
-      <div className="rounded-xl bg-theme-card px-4 py-8 text-center shadow-theme-sm">
-        <p className="text-3xl font-bold text-theme-accent">{count}</p>
-        <p className="mt-1 text-sm text-theme-muted">Jami buyurtmalar</p>
-        <p className="mt-4 text-xs leading-relaxed text-theme-muted">
-          Buyurtmalar tarixi tez orada shu yerda ko&apos;rinadi
-        </p>
-      </div>
+      {loading ? (
+        <div className="flex justify-center py-10">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-theme-accent border-t-transparent" />
+        </div>
+      ) : error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-6 text-center">
+          <p className="text-sm font-medium text-red-600">{error}</p>
+        </div>
+      ) : orders.length === 0 ? (
+        <div className="rounded-xl border border-theme bg-theme-card px-4 py-10 text-center shadow-theme-sm">
+          <ShoppingBag className="mx-auto h-10 w-10 text-theme-muted" strokeWidth={1.5} />
+          <p className="mt-3 text-[15px] font-semibold text-theme">Hali buyurtma yo&apos;q</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-theme-muted">
+            Birinchi buyurtmangiz bu yerda ko&apos;rinadi.
+          </p>
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {orders.map((order) => (
+            <li key={order.id} className="rounded-xl border border-theme bg-theme-card p-3.5 shadow-theme-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-[14px] font-bold text-theme">#{order.code}</p>
+                  <p className="mt-0.5 text-[11px] text-theme-muted">{formatOrderDate(order.created_at)}</p>
+                </div>
+                <span className={`shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-semibold ${statusColor(order.status)}`}>
+                  {statusLabel(order.status)}
+                </span>
+              </div>
+              <div className="mt-2.5 flex items-center justify-between border-t border-theme pt-2">
+                <div className="text-[12px] text-theme-muted">
+                  {order.item_count} ta mahsulot
+                  {order.address ? <span> · {order.address}</span> : null}
+                </div>
+                <p className="text-[14px] font-bold text-theme-accent">
+                  {order.total.toLocaleString('uz-UZ')} so&apos;m
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </SubPage>
   );
 }
@@ -733,7 +816,7 @@ export default function Profile() {
   };
 
   if (section === 'orders') {
-    return <OrdersView count={profile?.orders_count ?? 0} onBack={() => setSection(null)} />;
+    return <OrdersView onBack={() => setSection(null)} />;
   }
   if (section === 'cargo') {
     return <CargoCalcView onBack={() => setSection(null)} />;

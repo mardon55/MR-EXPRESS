@@ -420,6 +420,39 @@ async def get_notifications(x_telegram_user_id: str = Header(..., alias="X-Teleg
     return rows
 
 
+@router.get("/orders")
+async def list_orders(
+    x_telegram_user_id: str = Header(..., alias="X-Telegram-User-Id"),
+):
+    tid = _user_id_header(x_telegram_user_id)
+    uid = await _db_user_id(tid)
+    rows = await fetch(
+        """
+        SELECT o.id, o.total, o.status, o.address, o.phone, o.created_at,
+               COUNT(oi.id) AS item_count
+        FROM orders o
+        LEFT JOIN order_items oi ON oi.order_id = o.id
+        WHERE o.user_id = ?
+        GROUP BY o.id
+        ORDER BY o.id DESC
+        """,
+        uid,
+    )
+    result = []
+    for r in rows:
+        result.append({
+            "id": r["id"],
+            "code": f"MR-{r['id']:04d}",
+            "total": float(r["total"]),
+            "status": r["status"] or ORDER_STATUS_ACTIVE,
+            "address": r["address"] or "",
+            "phone": r["phone"] or "",
+            "item_count": r["item_count"] or 0,
+            "created_at": r["created_at"],
+        })
+    return result
+
+
 @router.post("/orders")
 async def create_order(
     body: OrderCreate,
@@ -453,57 +486,63 @@ async def create_order(
         except HTTPException:
             raise HTTPException(400, "Telefon raqam noto'g'ri") from None
 
-    db = await get_db()
-    await db.commit()
-    await db.execute("BEGIN IMMEDIATE")
-    try:
-        cur = await db.execute(
-            """
-            INSERT INTO orders (user_id, total, address, phone, status)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (uid, float(total), body.address, phone or None, ORDER_STATUS_ACTIVE),
-        )
-        order_id = cur.lastrowid
-        for item in cart:
-            await db.execute(
+    # Alohida write connection — shared db bilan race condition oldini olish uchun
+    from pathlib import Path as _Path
+    import aiosqlite as _aiosqlite
+    from app.config import settings as _settings
+    db_path = str(_Path(_settings.sqlite_path).resolve())
+
+    async with _aiosqlite.connect(db_path, timeout=30.0) as wdb:
+        await wdb.execute("PRAGMA journal_mode=WAL")
+        await wdb.execute("PRAGMA busy_timeout=30000")
+        await wdb.execute("BEGIN IMMEDIATE")
+        try:
+            cur = await wdb.execute(
                 """
-                INSERT INTO order_items (order_id, product_id, quantity, price)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO orders (user_id, total, address, phone, status)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                (order_id, item["id"], item["quantity"], item["price"]),
+                (uid, float(total), body.address, phone or None, ORDER_STATUS_ACTIVE),
             )
-            await db.execute(
-                "UPDATE products SET stock = stock - ? WHERE id = ?",
-                (item["quantity"], item["id"]),
+            order_id = cur.lastrowid
+            for item in cart:
+                await wdb.execute(
+                    """
+                    INSERT INTO order_items (order_id, product_id, quantity, price)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (order_id, item["id"], item["quantity"], item["price"]),
+                )
+                await wdb.execute(
+                    "UPDATE products SET stock = stock - ? WHERE id = ?",
+                    (item["quantity"], item["id"]),
+                )
+            await wdb.execute("DELETE FROM cart_items WHERE user_id = ?", (uid,))
+
+            item_names = ", ".join(item["name"] for item in cart[:2])
+            if len(cart) > 2:
+                item_names += f" va yana {len(cart) - 2} ta"
+            await wdb.execute(
+                """
+                INSERT INTO notifications (user_id, title, message)
+                VALUES (?, ?, ?)
+                """,
+                (
+                    uid,
+                    f"✅ Buyurtma #{order_id} qabul qilindi",
+                    f"{item_names} — jami {float(total):,.0f} so'm. Tez orada yetkazib beramiz!",
+                ),
             )
-        await db.execute("DELETE FROM cart_items WHERE user_id = ?", (uid,))
-        
-        item_names = ", ".join(item["name"] for item in cart[:2])
-        if len(cart) > 2:
-            item_names += f" va yana {len(cart) - 2} ta"
-        await db.execute(
-            """
-            INSERT INTO notifications (user_id, title, message)
-            VALUES (?, ?, ?)
-            """,
-            (
-                uid,
-                f"✅ Buyurtma #{order_id} qabul qilindi",
-                f"{item_names} — jami {float(total):,.0f} so'm. Tez orada yetkazib beramiz!",
-            ),
-        )
-        await db.commit()
-    except HTTPException:
-        await db.rollback()
-        raise
-    except Exception as exc:
-        await db.rollback()
-        logger.exception("create_order xatosi, user_id=%s", uid)
-        raise HTTPException(
-            503,
-            "Buyurtma vaqtincha qabul qilinmadi. Iltimos, qayta urinib ko'ring.",
-        ) from exc
+            await wdb.commit()
+        except Exception as exc:
+            await wdb.rollback()
+            if isinstance(exc, HTTPException):
+                raise
+            logger.exception("create_order xatosi, user_id=%s", uid)
+            raise HTTPException(
+                503,
+                "Buyurtma vaqtincha qabul qilinmadi. Iltimos, qayta urinib ko'ring.",
+            ) from exc
 
     return {"order_id": order_id, "total": float(total), "status": ORDER_STATUS_ACTIVE}
 

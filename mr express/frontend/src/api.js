@@ -87,6 +87,7 @@ export const api = {
     request('/api/profile', { method: 'PATCH', body: JSON.stringify(data) }),
   createOrder: (data) =>
     request('/api/orders', { method: 'POST', body: JSON.stringify(data) }),
+  getOrders: () => request('/api/orders'),
 
   // Bildirishnomalar
   getNotifications: () => request('/api/notifications'),
