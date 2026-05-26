@@ -8,7 +8,6 @@ import { useTelegram } from '../hooks/useTelegram';
 
 import SearchBar from '../components/SearchBar';
 
-import StoriesBar from '../components/StoriesBar';
 
 import BannerCarousel from '../components/BannerCarousel';
 
@@ -117,7 +116,6 @@ export default function Home() {
 
     <div className="scroll-area h-full px-4 pb-nav-safe pt-1">
 
-      <StoriesBar />
 
       <SearchBar
         value={search}
