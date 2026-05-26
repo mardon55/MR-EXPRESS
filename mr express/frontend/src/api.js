@@ -88,6 +88,16 @@ export const api = {
   createOrder: (data) =>
     request('/api/orders', { method: 'POST', body: JSON.stringify(data) }),
 
+  // Bildirishnomalar
+  getNotifications: () => request('/api/notifications'),
+
+  // Promokod qo'llash
+  applyPromoCode: (code) =>
+    request('/api/promo/apply', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+
   // Hikoyalar (Stories)
   getStories: () => request('/api/stories'),
   uploadStory: (formData) => {

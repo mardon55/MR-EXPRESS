@@ -558,33 +558,100 @@ function CargoCalcView({ onBack }) {
   );
 }
 
+function formatNotifTime(created_at) {
+  if (!created_at) return '';
+  try {
+    const d = new Date(created_at.replace(' ', 'T') + 'Z');
+    const now = new Date();
+    const diffMs = now - d;
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffH = Math.floor(diffMs / 3600000);
+    const diffD = Math.floor(diffMs / 86400000);
+    if (diffMin < 1) return 'Hozir';
+    if (diffMin < 60) return `${diffMin} daqiqa oldin`;
+    if (diffH < 24) return `${diffH} soat oldin`;
+    if (diffD === 1) return 'Kecha';
+    if (diffD < 7) return `${diffD} kun oldin`;
+    return d.toLocaleDateString('uz-UZ');
+  } catch {
+    return created_at;
+  }
+}
+
+function notifIcon(title = '') {
+  if (title.includes('xarid') || title.includes('Buyurtma')) return '🛍️';
+  if (title.includes('yetkazil') || title.includes('Yetkazil')) return '🚚';
+  if (title.includes('promokod') || title.includes('Promokod')) return '🎟️';
+  return '🔔';
+}
+
 function NotificationsView({ onBack }) {
-  const items = [
-    { title: 'Buyurtma qabul qilindi', time: 'Bugun', unread: true },
-    { title: 'Yangi chegirmalar', time: 'Kecha', unread: false },
-  ];
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [seenIds, setSeenIds] = useState(() => new Set());
+
+  useEffect(() => {
+    api.getNotifications()
+      .then((data) => {
+        setItems(Array.isArray(data) ? data : []);
+      })
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleRead = (id) => setSeenIds((prev) => new Set([...prev, id]));
 
   return (
     <SubPage title="Bildirishnomalar" onBack={onBack}>
-      <ul className="space-y-2">
-        {items.map((n) => (
-          <li
-            key={n.title}
-            className={`rounded-xl px-3.5 py-3 ${n.unread ? 'bg-theme-icon' : 'bg-theme-card'}`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-[14px] font-medium text-theme">{n.title}</p>
-              {n.unread && (
-                <span
-                  className="mt-1 h-2 w-2 shrink-0 rounded-full"
-                  style={{ backgroundColor: 'var(--theme-accent)' }}
-                />
-              )}
-            </div>
-            <p className="mt-0.5 text-xs text-theme-muted">{n.time}</p>
-          </li>
-        ))}
-      </ul>
+      {loading ? (
+        <div className="flex justify-center py-10">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-theme-accent border-t-transparent" />
+        </div>
+      ) : items.length === 0 ? (
+        <div className="rounded-xl border border-theme bg-theme-card px-4 py-10 text-center shadow-theme-sm">
+          <p className="text-3xl">🔔</p>
+          <p className="mt-3 text-[15px] font-semibold text-theme">Bildirishnoma yo'q</p>
+          <p className="mt-1.5 text-xs text-theme-muted">
+            Buyurtma berganingizda yoki promokod qo'shilganda bu yerda xabar ko'rinadi.
+          </p>
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {items.map((n) => {
+            const unread = !seenIds.has(n.id);
+            return (
+              <li
+                key={n.id}
+                onClick={() => handleRead(n.id)}
+                className={`cursor-pointer rounded-xl px-3.5 py-3 transition-colors ${
+                  unread ? 'bg-theme-icon' : 'bg-theme-card'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 text-xl leading-none">{notifIcon(n.title)}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[14px] font-semibold text-theme">{n.title}</p>
+                      {unread && (
+                        <span
+                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: 'var(--theme-accent)' }}
+                        />
+                      )}
+                    </div>
+                    {n.message && (
+                      <p className="mt-0.5 text-[12px] text-theme-muted">{n.message}</p>
+                    )}
+                    <p className="mt-1 text-[11px] text-theme-muted">
+                      {formatNotifTime(n.created_at)}
+                    </p>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </SubPage>
   );
 }

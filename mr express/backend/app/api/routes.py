@@ -468,12 +468,19 @@ async def create_order(
             )
         await db.execute("DELETE FROM cart_items WHERE user_id = ?", (uid,))
         
+        item_names = ", ".join(item["name"] for item in cart[:2])
+        if len(cart) > 2:
+            item_names += f" va yana {len(cart) - 2} ta"
         await db.execute(
             """
             INSERT INTO notifications (user_id, title, message)
             VALUES (?, ?, ?)
             """,
-            (uid, "Xarid muvaffaqiyatli!", "Tovaringiz xarid qilindi.")
+            (
+                uid,
+                f"✅ Buyurtma #{order_id} qabul qilindi",
+                f"{item_names} — jami {float(total):,.0f} so'm. Tez orada yetkazib beramiz!",
+            ),
         )
         await db.commit()
     except HTTPException:
@@ -488,6 +495,63 @@ async def create_order(
         ) from exc
 
     return {"order_id": order_id, "total": float(total), "status": ORDER_STATUS_ACTIVE}
+
+
+# =====================================================================
+# --- PROMOKOD VA YETKAZIB BERISH ENDPOINTLARI ---
+# =====================================================================
+
+class PromoApply(BaseModel):
+    code: str
+
+
+@router.post("/promo/apply")
+async def apply_promo_code(
+    body: PromoApply,
+    x_telegram_user_id: str = Header(..., alias="X-Telegram-User-Id"),
+):
+    """Promokod qo'llash — bildirishnoma yuboradi"""
+    tid = _user_id_header(x_telegram_user_id)
+    uid = await _db_user_id(tid)
+    code = body.code.strip().upper()
+    if not code:
+        raise HTTPException(400, "Promokod bo'sh bo'lishi mumkin emas")
+
+    await execute(
+        """
+        INSERT INTO notifications (user_id, title, message)
+        VALUES (?, ?, ?)
+        """,
+        uid,
+        f"🎟️ Promokod qo'shildi: {code}",
+        "Promokodingiz muvaffaqiyatli qo'shildi va keyingi buyurtmangizda ishlatiladi.",
+    )
+    return {"ok": True, "code": code}
+
+
+@router.post("/orders/{order_id}/deliver")
+async def mark_delivered(
+    order_id: int,
+    x_telegram_user_id: str = Header(..., alias="X-Telegram-User-Id"),
+):
+    """Buyurtmani yetkazilgan deb belgilash (admin tomonidan chaqiriladi)"""
+    order = await fetchrow("SELECT * FROM orders WHERE id = ?", order_id)
+    if not order:
+        raise HTTPException(404, "Buyurtma topilmadi")
+    await execute(
+        "UPDATE orders SET status = ? WHERE id = ?",
+        "Yetkazildi", order_id,
+    )
+    await execute(
+        """
+        INSERT INTO notifications (user_id, title, message)
+        VALUES (?, ?, ?)
+        """,
+        order["user_id"],
+        f"🚚 Buyurtma #{order_id} yetkazildi",
+        "Buyurtmangiz muvaffaqiyatli yetkazib berildi. Xaridingiz uchun rahmat!",
+    )
+    return {"ok": True, "order_id": order_id, "status": "Yetkazildi"}
 
 
 # =====================================================================
