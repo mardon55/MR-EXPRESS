@@ -187,7 +187,7 @@ async def products(
     category_id: int | None = Query(None),
     discount_only: bool = Query(False),
     featured_only: bool = Query(False),
-    limit: int = Query(50, le=100),
+    limit: int = Query(10000),
     offset: int = Query(0),
 ):
     conditions = ["1=1"]
