@@ -106,6 +106,22 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  uploadReviewPhotos: (files) => {
+    const url = `${API_BASE}/api/review-photos`;
+    const formData = new FormData();
+    files.forEach((f) => formData.append('files', f));
+    return fetch(url, {
+      method: 'POST',
+      headers: getTelegramHeaders(),
+      body: formData,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      return res.json();
+    });
+  },
 
   // Hikoyalar (Stories)
   getStories: () => request('/api/stories'),

@@ -113,6 +113,7 @@ CREATE TABLE IF NOT EXISTS reviews (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
     comment TEXT,
+    photos TEXT DEFAULT '[]',
     created_at TEXT DEFAULT (datetime('now')),
     UNIQUE (product_id, user_id)
 );

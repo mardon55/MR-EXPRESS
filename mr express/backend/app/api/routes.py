@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import shutil
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 ORDER_STATUS_ACTIVE = "Aktiv"
 # Absolyut yo'l — qaysi papkadan ishga tushirilganidan qat'iy nazar
 UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads" / "stories"
+REVIEW_PHOTOS_DIR = Path(__file__).resolve().parent.parent.parent / "uploads" / "reviews"
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 ALLOWED_VIDEO_TYPES = {"video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"}
@@ -504,13 +506,42 @@ async def create_order(
 class ReviewCreate(BaseModel):
     rating: int
     comment: str | None = None
+    photos: list[str] = []
+
+
+@router.post("/review-photos")
+async def upload_review_photos(
+    files: list[UploadFile] = File(...),
+    x_telegram_user_id: str = Header(..., alias="X-Telegram-User-Id"),
+):
+    """Sharh uchun rasmlar yuklash — max 6 ta"""
+    tid = _user_id_header(x_telegram_user_id)
+    uid = await _db_user_id(tid)
+
+    if len(files) > 6:
+        raise HTTPException(400, "Maksimal 6 ta rasm yuklanishi mumkin")
+
+    REVIEW_PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
+    urls: list[str] = []
+    for file in files:
+        content_type = file.content_type or ""
+        if content_type not in ALLOWED_IMAGE_TYPES and not content_type.startswith("image/"):
+            raise HTTPException(400, f"Faqat rasm fayllari qabul qilinadi: {content_type}")
+        ext = Path(file.filename or "file").suffix or ".jpg"
+        file_name = f"review_{uid}_{uuid.uuid4().hex[:8]}{ext}"
+        file_path = REVIEW_PHOTOS_DIR / file_name
+        with open(file_path, "wb") as buf:
+            shutil.copyfileobj(file.file, buf)
+        urls.append(f"/uploads/reviews/{file_name}")
+
+    return {"ok": True, "urls": urls}
 
 
 @router.get("/products/{product_id}/reviews")
 async def get_reviews(product_id: int):
     rows = await fetch(
         """
-        SELECT r.id, r.rating, r.comment, r.created_at,
+        SELECT r.id, r.rating, r.comment, r.photos, r.created_at,
                u.first_name, u.last_name, u.username
         FROM reviews r
         JOIN users u ON u.id = r.user_id
@@ -524,10 +555,15 @@ async def get_reviews(product_id: int):
         first = r["first_name"] or ""
         last = r["last_name"] or ""
         name = f"{first} {last}".strip() or r["username"] or "Mijoz"
+        try:
+            photos = json.loads(r["photos"] or "[]")
+        except (json.JSONDecodeError, TypeError):
+            photos = []
         result.append({
             "id": r["id"],
             "rating": r["rating"],
             "comment": r["comment"],
+            "photos": photos,
             "created_at": r["created_at"],
             "user_name": name,
         })
@@ -542,17 +578,17 @@ async def can_review(
     tid = _user_id_header(x_telegram_user_id)
     uid = await _db_user_id(tid)
 
-    purchased = await fetchval(
+    delivered = await fetchval(
         """
         SELECT 1 FROM order_items oi
         JOIN orders o ON o.id = oi.order_id
-        WHERE o.user_id = ? AND oi.product_id = ?
+        WHERE o.user_id = ? AND oi.product_id = ? AND o.status = 'Yetkazildi'
         LIMIT 1
         """,
         uid, product_id,
     )
-    if not purchased:
-        return {"can_review": False, "reason": "not_purchased"}
+    if not delivered:
+        return {"can_review": False, "reason": "not_delivered"}
 
     already = await fetchval(
         "SELECT 1 FROM reviews WHERE product_id = ? AND user_id = ?",
@@ -576,17 +612,17 @@ async def create_review(
     if not (1 <= body.rating <= 5):
         raise HTTPException(400, "Baho 1 dan 5 gacha bo'lishi kerak")
 
-    purchased = await fetchval(
+    delivered = await fetchval(
         """
         SELECT 1 FROM order_items oi
         JOIN orders o ON o.id = oi.order_id
-        WHERE o.user_id = ? AND oi.product_id = ?
+        WHERE o.user_id = ? AND oi.product_id = ? AND o.status = 'Yetkazildi'
         LIMIT 1
         """,
         uid, product_id,
     )
-    if not purchased:
-        raise HTTPException(403, "Sharh yozish uchun mahsulotni sotib olgan bo'lishingiz kerak")
+    if not delivered:
+        raise HTTPException(403, "Sharh yozish uchun buyurtma yetkazib berilgan bo'lishi kerak")
 
     already = await fetchval(
         "SELECT 1 FROM reviews WHERE product_id = ? AND user_id = ?",
@@ -599,10 +635,14 @@ async def create_review(
     if not product:
         raise HTTPException(404, "Mahsulot topilmadi")
 
+    if len(body.photos) > 6:
+        raise HTTPException(400, "Maksimal 6 ta rasm yuklanishi mumkin")
+
     comment = body.comment.strip() if body.comment else None
+    photos_json = json.dumps(body.photos)
     await execute(
-        "INSERT INTO reviews (product_id, user_id, rating, comment) VALUES (?, ?, ?, ?)",
-        product_id, uid, body.rating, comment,
+        "INSERT INTO reviews (product_id, user_id, rating, comment, photos) VALUES (?, ?, ?, ?, ?)",
+        product_id, uid, body.rating, comment, photos_json,
     )
     return {"ok": True}
 

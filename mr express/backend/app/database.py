@@ -54,11 +54,20 @@ async def _migrate_schema(db: aiosqlite.Connection):
                 user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
                 comment TEXT,
+                photos TEXT DEFAULT '[]',
                 created_at TEXT DEFAULT (datetime('now')),
                 UNIQUE (product_id, user_id)
             )
             """
         )
+    else:
+        # Eski reviews jadvalida photos ustuni bo'lmasa qo'shish
+        cur = await db.execute("PRAGMA table_info(reviews)")
+        review_cols = {row[1] for row in await cur.fetchall()}
+        if "photos" not in review_cols:
+            await db.execute(
+                "ALTER TABLE reviews ADD COLUMN photos TEXT DEFAULT '[]'"
+            )
 
 
 async def _init_schema(db: aiosqlite.Connection):
