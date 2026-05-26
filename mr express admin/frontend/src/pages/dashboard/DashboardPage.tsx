@@ -14,7 +14,7 @@ import { GlassPanel } from '@/components/ui/GlassPanel'
 import { GlassButton } from '@/components/ui/GlassButton'
 import { formatCurrency, formatNumber } from '@/lib/utils'
 import { staggerContainer } from '@/lib/motion'
-import { api, type DashboardStats } from '@/lib/api'
+import { api, type DashboardStats, type RecentOrderItem } from '@/lib/api'
 import { orderStatusLabel } from '@/constants/orderStatus'
 
 const EMPTY_STATS: DashboardStats = {
@@ -28,9 +28,7 @@ const EMPTY_STATS: DashboardStats = {
 
 export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS)
-  const [recent, setRecent] = useState<
-    { id: string; customer: string; amount: number; status: string }[]
-  >([])
+  const [recent, setRecent] = useState<RecentOrderItem[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -43,8 +41,9 @@ export function DashboardPage() {
           api.getRecentOrders(),
         ])
         if (!cancelled) {
-          setStats(statsRes.data)
-          setRecent(recentRes.data.items)
+          setStats(statsRes.data ?? EMPTY_STATS)
+          const items = recentRes.data?.items
+          setRecent(Array.isArray(items) ? items : [])
         }
       } catch {
         if (!cancelled) {

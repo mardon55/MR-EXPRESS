@@ -151,6 +151,13 @@ export interface ReviewRow {
   created_at: string | null
 }
 
+export interface RecentOrderItem {
+  id: string
+  customer: string
+  amount: number
+  status: string
+}
+
 export const api = {
   getOrders: (params?: { status?: string; page?: number; limit?: number }) =>
     apiClient.get<{ items: OrderRow[]; total: number }>('/orders', { params }),
@@ -161,9 +168,7 @@ export const api = {
   getDashboardStats: () => apiClient.get<DashboardStats>('/dashboard/stats'),
 
   getRecentOrders: () =>
-    apiClient.get<{
-      items: { id: string; customer: string; amount: number; status: string }[]
-    }>('/dashboard/recent-orders'),
+    apiClient.get<{ items: RecentOrderItem[] }>('/dashboard/recent-orders'),
 
   getCategories: () =>
     apiClient.get<{ items: CategoryNode[]; flat: CategoryNode[] }>('/catalog/categories'),
