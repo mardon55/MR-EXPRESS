@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import WebApp from '@twa-dev/sdk';
 import { api, formatPrice } from '../api';
 import { useApp } from '../context/AppContext';
+import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import { useTelegram } from '../hooks/useTelegram';
 import { IconCart } from '../components/icons/TabIcons';
 import {
@@ -271,15 +272,17 @@ export default function Cart() {
   const { haptic, tg } = useTelegram();
   const navigate = useNavigate();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const data = await api.cart();
     setCart(data);
     await refreshCart();
-  };
+  }, [refreshCart]);
 
   useEffect(() => {
     load().catch(console.error);
-  }, []);
+  }, [load]);
+
+  useAutoRefresh(load, 20_000);
 
   const updateQty = async (productId, qty) => {
     haptic('light');

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { useApp } from '../context/AppContext';
 import { useTelegram } from '../hooks/useTelegram';
+import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import BannerCarousel from '../components/BannerCarousel';
 import ProductCard from '../components/ProductCard';
 import ProductGrid from '../components/ProductGrid';
@@ -16,11 +17,14 @@ export default function Home() {
   const { refreshCart } = useApp();
   const { haptic } = useTelegram();
 
-  useEffect(() => {
-    api.banners().then(setBanners).catch(console.error);
-    api.products({ discount_only: true }).then(setDiscounts).catch(console.error);
-    api.products({}).then(setFeatured).catch(console.error);
+  const loadData = useCallback(() => {
+    api.banners().then(setBanners).catch(() => {});
+    api.products({ discount_only: true }).then(setDiscounts).catch(() => {});
+    api.products({}).then(setFeatured).catch(() => {});
   }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+  useAutoRefresh(loadData, 20_000);
 
   const handleAddCart = async (product) => {
     const cart = await api.cart().catch(() => ({ items: [] }));

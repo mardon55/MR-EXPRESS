@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { useApp } from '../context/AppContext';
 import { useTelegram } from '../hooks/useTelegram';
+import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import ProductGrid from '../components/ProductGrid';
 
 export default function Favorites() {
@@ -9,6 +10,13 @@ export default function Favorites() {
   const [loading, setLoading] = useState(true);
   const { refreshCart } = useApp();
   const { haptic } = useTelegram();
+
+  const loadData = useCallback(() => {
+    api
+      .favorites()
+      .then(setProducts)
+      .catch(() => setProducts([]));
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -18,6 +26,8 @@ export default function Favorites() {
       .catch(() => setProducts([]))
       .finally(() => setLoading(false));
   }, []);
+
+  useAutoRefresh(loadData, 20_000);
 
   const handleAddCart = async (product) => {
     const cart = await api.cart().catch(() => ({ items: [] }));

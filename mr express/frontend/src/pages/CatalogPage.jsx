@@ -3,6 +3,7 @@ import { ChevronLeft } from 'lucide-react';
 import { api } from '../api';
 import { useApp } from '../context/AppContext';
 import { useTelegram } from '../hooks/useTelegram';
+import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import ProductGrid from '../components/ProductGrid';
 
 const GLASS_INDICATOR_STYLE = {
@@ -143,6 +144,13 @@ function SubCategoryProducts({ sub, onBack }) {
   const { refreshCart } = useApp();
   const { haptic } = useTelegram();
 
+  const loadProducts = useCallback(() => {
+    api
+      .products({ category_id: sub.id })
+      .then(setProducts)
+      .catch(() => setProducts([]));
+  }, [sub.id]);
+
   useEffect(() => {
     setLoading(true);
     api
@@ -151,6 +159,8 @@ function SubCategoryProducts({ sub, onBack }) {
       .catch(() => setProducts([]))
       .finally(() => setLoading(false));
   }, [sub.id]);
+
+  useAutoRefresh(loadProducts, 20_000);
 
   const handleAddCart = async (product) => {
     const cart = await api.cart().catch(() => ({ items: [] }));
