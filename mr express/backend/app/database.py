@@ -99,16 +99,46 @@ async def _seed_banners(db: aiosqlite.Connection):
 
 
 async def _seed(db: aiosqlite.Connection):
-    categories = [
-        ("Elektronika", "elektronika", "📱", 1),
-        ("Kiyim", "kiyim", "👕", 2),
-        ("Uy-ro'zg'or", "uy-rozgor", "🏠", 3),
-        ("Go'zallik", "gozallik", "💄", 4),
-        ("Oziq-ovqat", "oziq-ovqat", "🍎", 5),
+    main_cats = [
+        (1, "Elektronika",   "elektronika",  "📱", 1),
+        (2, "Kiyimlar",      "kiyimlar",     "👗", 2),
+        (3, "Uy Ro'zg'or",  "uy-rozgor",    "🏠", 3),
+        (4, "Go'zallik",     "gozallik",     "💄", 4),
+        (5, "O'yinchoqlar",  "oyinchoqlar",  "🧸", 5),
     ]
     await db.executemany(
-        "INSERT INTO categories (name, slug, icon, sort_order) VALUES (?, ?, ?, ?)",
-        categories,
+        "INSERT INTO categories (id, name, slug, icon, sort_order) VALUES (?, ?, ?, ?, ?)",
+        main_cats,
+    )
+    sub_cats = [
+        ("Smartfonlar",                    "smartfonlar",         "📱", 1, 1),
+        ("Aksessuarlar",                   "aksessuarlar",        "🎧", 2, 1),
+        ("G'iloflar",                      "giloflar",            "🛡️", 3, 1),
+        ("Himoya oynalar",                 "himoya-oynalar",      "🪟", 4, 1),
+        ("Quvvatlagichlar",                "quvvatlagichlar",     "🔋", 5, 1),
+        ("Erkaklar kiyimi",                "erkaklar-kiyimi",     "👔", 1, 2),
+        ("Ayollar kiyimi",                 "ayollar-kiyimi",      "👚", 2, 2),
+        ("Bolalar kiyimi",                 "bolalar-kiyimi",      "🧒", 3, 2),
+        ("Sport kiyimlari",                "sport-kiyimlari",     "🏃", 4, 2),
+        ("Oyoq kiyimlar",                  "oyoq-kiyimlar",       "👟", 5, 2),
+        ("Oshxona jihozlari",              "oshxona-jihozlari",   "🍳", 1, 3),
+        ("Maishiy texnika",                "maishiy-texnika",     "🏠", 2, 3),
+        ("Uy tekstili",                    "uy-tekstili",         "🛏️", 3, 3),
+        ("Mebel va interyer",              "mebel-va-interyer",   "🪑", 4, 3),
+        ("Yuz va tana parvarishi",         "yuz-va-tana",         "🧴", 1, 4),
+        ("Dekorativ kosmetika",            "dekorativ-kosmetika", "💋", 2, 4),
+        ("Soch parvarishi",                "soch-parvarishi",     "💇", 3, 4),
+        ("Parfyumeriya",                   "parfyumeriya",        "🌸", 4, 4),
+        ("Manikyur va pedikyur",           "manikyur-pedikyur",   "💅", 5, 4),
+        ("Rivojlantiruvchi o'yinchoqlar",  "rivojlantiruvchi",    "🎓", 1, 5),
+        ("Konstruktorlar",                 "konstruktorlar",      "🧱", 2, 5),
+        ("Yumshoq o'yinchoqlar",           "yumshoq-oyinchoqlar", "🧸", 3, 5),
+        ("Radioboshqaruvli va interaktiv", "radio-interaktiv",    "🎮", 4, 5),
+        ("Stol o'yinlari",                 "stol-oyinlari",       "🎲", 5, 5),
+    ]
+    await db.executemany(
+        "INSERT INTO categories (name, slug, icon, sort_order, parent_id) VALUES (?, ?, ?, ?, ?)",
+        sub_cats,
     )
     banners = [
         ("Yozgi chegirmalar", "50% gacha", "https://images.unsplash.com/photo-1607082349566-187342175e2f?w=800", 1),

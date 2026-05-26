@@ -178,7 +178,9 @@ async def banners():
 
 @router.get("/categories")
 async def categories():
-    return await fetch("SELECT * FROM categories ORDER BY sort_order")
+    return await fetch(
+        "SELECT id, name, slug, icon, sort_order, parent_id FROM categories ORDER BY COALESCE(parent_id, id), sort_order"
+    )
 
 
 @router.get("/products")

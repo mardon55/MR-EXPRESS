@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS categories (
     name TEXT NOT NULL,
     slug TEXT UNIQUE NOT NULL,
     icon TEXT DEFAULT '📦',
-    sort_order INTEGER DEFAULT 0
+    sort_order INTEGER DEFAULT 0,
+    parent_id INTEGER REFERENCES categories(id)
 );
 
 CREATE TABLE IF NOT EXISTS products (
