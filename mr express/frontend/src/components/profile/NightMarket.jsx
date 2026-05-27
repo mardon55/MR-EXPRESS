@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Flame, Moon, ShoppingCart, Sparkles, Sun, Timer } from 'lucide-react';
 import { api } from '../../api';
-import { useApp } from '../../context/AppContext';
 import { useTelegram } from '../../hooks/useTelegram';
 import PageHeader from '../PageHeader';
 
@@ -221,7 +220,6 @@ function NightProductCard({ mahsulot, faol, onBuy, buyingId }) {
 // ── Asosiy komponent ─────────────────────────────────────────────────────────
 
 export default function NightMarket({ onBack }) {
-  const { refreshCart } = useApp();
   const { haptic, tg } = useTelegram();
   const { faol, ochilishMatn, yopilishMatn } = useNightMarketClock();
   const [mahsulotlar, setMahsulotlar] = useState([]);
@@ -253,12 +251,12 @@ export default function NightMarket({ onBack }) {
     }
     setBuyingId(mahsulot.id);
     try {
-      const cart = await api.cart().catch(() => ({ items: [] }));
-      const mavjud = cart.items?.find((i) => String(i.product?.id) === String(mahsulot.id));
-      await api.updateCart(mahsulot.id, (mavjud?.quantity || 0) + 1);
-      await refreshCart();
+      const res = await api.buyNightMarketItem(mahsulot.id);
       haptic?.('success');
-      tg?.showAlert?.(`${mahsulot.name} savatchaga qo'shildi!`);
+      const nightPrice = res?.price ?? Math.round(mahsulot.day_price * (1 - mahsulot.night_discount_percent / 100));
+      tg?.showAlert?.(
+        `✅ Buyurtma qabul qilindi!\n${mahsulot.name}\n${nightPrice.toLocaleString('uz-UZ')} so'm\n\nYaqin orada yetkaziladi 🚚`
+      );
       setMahsulotlar((prev) =>
         prev.map((p) =>
           p.id === mahsulot.id && p.sold_count < p.total_stock
@@ -266,20 +264,18 @@ export default function NightMarket({ onBack }) {
             : p
         )
       );
-    } catch {
+    } catch (err) {
       haptic?.('light');
-      tg?.showAlert?.(`"${mahsulot.name}" savatchaga qo'shildi!`);
-      setMahsulotlar((prev) =>
-        prev.map((p) =>
-          p.id === mahsulot.id && p.sold_count < p.total_stock
-            ? { ...p, sold_count: p.sold_count + 1 }
-            : p
-        )
-      );
+      const msg = err?.message || String(err);
+      if (msg.includes('tugab')) {
+        tg?.showAlert?.('Kechirasiz, bu mahsulot tugab ketdi!');
+      } else {
+        tg?.showAlert?.(`Xato: ${msg}`);
+      }
     } finally {
       setBuyingId(null);
     }
-  }, [haptic, refreshCart, tg]);
+  }, [haptic, tg]);
 
   return (
     <div className="flex h-full flex-col" style={{ backgroundColor: faol ? '#0B0C10' : '#111318' }}>

@@ -907,6 +907,98 @@ async def get_night_market():
     ]
 
 
+@router.post("/night-market/{item_id}/buy")
+async def buy_night_market_item(
+    item_id: int,
+    x_telegram_user_id: str = Header(..., alias="X-Telegram-User-Id"),
+):
+    """Tungi bozor mahsulotini to'g'ridan-to'g'ri buyurtma qilish."""
+    tid = _user_id_header(x_telegram_user_id)
+    uid = await _db_user_id(tid)
+
+    from pathlib import Path as _Path
+    import aiosqlite as _aiosqlite
+    from app.config import settings as _settings
+
+    db_path = str(_Path(_settings.sqlite_path).resolve())
+
+    async with _aiosqlite.connect(db_path, timeout=30.0) as wdb:
+        wdb.row_factory = _aiosqlite.Row
+        await wdb.execute("PRAGMA journal_mode=WAL")
+        await wdb.execute("PRAGMA busy_timeout=30000")
+        await wdb.execute("BEGIN IMMEDIATE")
+        try:
+            cur = await wdb.execute(
+                "SELECT * FROM night_market_items WHERE id = ? AND is_active = 1",
+                (item_id,),
+            )
+            item = await cur.fetchone()
+            if not item:
+                await wdb.rollback()
+                raise HTTPException(404, "Mahsulot topilmadi yoki faol emas")
+
+            item = dict(item)
+            remaining = item["total_stock"] - item["sold_count"]
+            if remaining <= 0:
+                await wdb.rollback()
+                raise HTTPException(400, "Mahsulot tugab ketgan")
+
+            night_price = round(item["day_price"] * (1 - item["night_discount_percent"] / 100))
+
+            # Sotilgan soni ++
+            await wdb.execute(
+                "UPDATE night_market_items SET sold_count = sold_count + 1 WHERE id = ?",
+                (item_id,),
+            )
+
+            # Foydalanuvchi telefon raqami
+            cur2 = await wdb.execute(
+                "SELECT phone FROM users WHERE id = ?", (uid,)
+            )
+            u = await cur2.fetchone()
+            user_phone = (dict(u).get("phone") or "") if u else ""
+
+            # Orders jadvaliga yoz (admin panelda ko'rinsin)
+            cur3 = await wdb.execute(
+                """
+                INSERT INTO orders (user_id, total, address, phone, status)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    uid,
+                    float(night_price),
+                    f"[TUNGI BOZOR] {item['name']} (-{item['night_discount_percent']}%)",
+                    user_phone or None,
+                    ORDER_STATUS_ACTIVE,
+                ),
+            )
+            order_id = cur3.lastrowid
+
+            # Bildirishnoma
+            await wdb.execute(
+                "INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)",
+                (
+                    uid,
+                    f"🌙 Tungi bozor buyurtmasi #{order_id}",
+                    f"'{item['name']}' mahsuloti {night_price:,} so'mga buyurtma qilindi! Tez orada yetkaziladi.",
+                ),
+            )
+
+            await wdb.commit()
+            return {
+                "ok": True,
+                "order_id": order_id,
+                "price": night_price,
+                "status": ORDER_STATUS_ACTIVE,
+            }
+        except HTTPException:
+            await wdb.rollback()
+            raise
+        except Exception as exc:
+            await wdb.rollback()
+            raise HTTPException(500, f"Server xatosi: {exc}") from exc
+
+
 @router.get("/settings/support")
 async def get_support_settings():
     """Qo'llab-quvvatlash sozlamalarini qaytaradi (admin belgilaydi)."""

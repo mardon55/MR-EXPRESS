@@ -91,6 +91,8 @@ export const api = {
 
   // Bildirishnomalar
   getNotifications: () => request('/api/notifications'),
+  buyNightMarketItem: (item_id) =>
+    request(`/api/night-market/${item_id}/buy`, { method: 'POST' }),
 
   // Promokod qo'llash
   applyPromoCode: (code) =>
