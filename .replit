@@ -109,4 +109,4 @@ build = ["bash", "-c", "cd 'mr express admin/frontend' && npm run build && cd '.
 [userenv]
 
 [userenv.shared]
-WEBAPP_URL = "https://fcdf1ff2-acac-43b7-8bfa-978d41260b45-00-1d3t418qq45kh.sisko.replit.dev"
+WEBAPP_URL = "https://3f7f50c2-e710-49e8-b5e9-982bfaef2a76-00-jtzmqfyi7dsj.sisko.replit.dev"
