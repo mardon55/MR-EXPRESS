@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
-import { ShoppingBagIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ShoppingBagIcon, ArrowPathIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { GlassPanel } from '@/components/ui/GlassPanel'
 import { GlassButton } from '@/components/ui/GlassButton'
 import { OrderStatusSelect } from '@/components/orders/OrderStatusSelect'
-import { api, type OrderRow } from '@/lib/api'
+import { api, type OrderRow, type OrderItem } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 import {
   orderStatusLabel,
@@ -16,6 +16,185 @@ import {
 } from '@/constants/orderStatus'
 import { staggerContainer, fadeUpItem } from '@/lib/motion'
 import { cn } from '@/lib/utils'
+
+function OrderItemsRow({ items }: { items: OrderItem[] }) {
+  if (!items || items.length === 0) {
+    return (
+      <div className="px-6 py-3 text-xs text-ink-400 italic">
+        Mahsulotlar ma'lumoti topilmadi
+      </div>
+    )
+  }
+
+  return (
+    <div className="border-t border-white/10 bg-white/[0.03] px-6 py-4">
+      <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-ink-400">
+        Buyurtma tarkibi
+      </p>
+      <div className="space-y-2">
+        {items.map((item, idx) => {
+          const hasDiscount = item.old_price !== null && item.old_price > item.unit_price
+          const discountPct = hasDiscount
+            ? Math.round((1 - item.unit_price / item.old_price!) * 100)
+            : null
+
+          return (
+            <div
+              key={idx}
+              className="flex items-center gap-3 rounded-xl bg-white/5 px-3 py-2.5"
+            >
+              {item.image_url ? (
+                <img
+                  src={item.image_url}
+                  alt={item.product_name}
+                  className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-lg">
+                  📦
+                </div>
+              )}
+
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-semibold text-ink-800 dark:text-ink-100">
+                  {item.product_name}
+                </p>
+                <div className="mt-0.5 flex items-center gap-2">
+                  <span className="text-[12px] font-bold text-brand-600 dark:text-accent-cyan">
+                    {formatCurrency(item.unit_price)}
+                  </span>
+                  {hasDiscount && (
+                    <>
+                      <span className="text-[11px] text-ink-400 line-through">
+                        {formatCurrency(item.old_price!)}
+                      </span>
+                      <span className="rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-500">
+                        -{discountPct}%
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="shrink-0 text-right">
+                <p className="text-[12px] text-ink-500">×{item.quantity}</p>
+                <p className="text-[13px] font-bold text-ink-800 dark:text-ink-100">
+                  {formatCurrency(item.subtotal)}
+                </p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="mt-3 flex justify-end border-t border-white/10 pt-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] text-ink-400">Jami:</span>
+          <span className="text-[15px] font-bold text-ink-800 dark:text-white">
+            {formatCurrency(items.reduce((s, i) => s + i.subtotal, 0))}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function OrderTableRow({
+  row,
+  isLive,
+  onStatusChange,
+}: {
+  row: OrderRow
+  isLive: boolean
+  onStatusChange: (id: number, status: OrderStatusValue) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <>
+      <tr
+        className={cn(
+          'border-b border-white/10 last:border-0 dark:border-white/5 transition-colors duration-500 cursor-pointer hover:bg-white/5',
+          isLive && 'bg-emerald-500/10',
+          expanded && 'bg-white/[0.04]',
+        )}
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <td className="px-6 py-4 font-mono text-xs font-medium text-brand-600 dark:text-accent-cyan">
+          #{row.code}
+        </td>
+        <td className="px-4 py-4 font-medium text-ink-800 dark:text-ink-100">
+          {row.customer_name}
+        </td>
+        <td className="px-4 py-4 text-ink-600 dark:text-ink-300">
+          {row.phone ?? '—'}
+        </td>
+        <td className="px-4 py-4 text-ink-600 dark:text-ink-300 max-w-[180px]">
+          <span className="line-clamp-2 text-xs leading-relaxed">
+            {row.address ?? '—'}
+          </span>
+        </td>
+        <td className="px-4 py-4">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[14px] font-bold text-ink-700 dark:text-ink-200">
+              {formatCurrency(row.total)}
+            </span>
+            {row.items && row.items.length > 0 && (
+              <span className="text-[11px] text-ink-400">
+                {row.items.length} ta mahsulot
+              </span>
+            )}
+          </div>
+        </td>
+        <td className="px-4 py-4 text-xs text-ink-500">
+          {row.created_at
+            ? new Date(row.created_at).toLocaleString('uz-UZ')
+            : '—'}
+        </td>
+        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+          <OrderStatusSelect
+            value={row.status}
+            onChange={(status) => onStatusChange(row.id, status)}
+          />
+          <p className={cn(
+            'mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full w-fit',
+            orderStatusColor(row.status),
+          )}>
+            {orderStatusLabel(row.status)}
+          </p>
+        </td>
+        <td className="pr-4 py-4">
+          <div
+            className={cn(
+              'flex h-7 w-7 items-center justify-center rounded-full transition-colors',
+              expanded ? 'bg-brand-500/20 text-brand-600' : 'bg-white/10 text-ink-400 hover:bg-white/20',
+            )}
+          >
+            <ChevronDownIcon
+              className={cn('h-4 w-4 transition-transform duration-200', expanded && 'rotate-180')}
+            />
+          </div>
+        </td>
+      </tr>
+      {expanded && (
+        <tr className="border-b border-white/10 dark:border-white/5">
+          <td colSpan={8} className="p-0">
+            <AnimatePresence>
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <OrderItemsRow items={row.items} />
+              </motion.div>
+            </AnimatePresence>
+          </td>
+        </tr>
+      )}
+    </>
+  )
+}
 
 export function OrdersPage() {
   const [orders, setOrders] = useState<OrderRow[]>([])
@@ -97,7 +276,7 @@ export function OrdersPage() {
     <motion.div variants={staggerContainer} initial="initial" animate="animate">
       <PageHeader
         title="Buyurtmalar"
-        description="Statusni o'zgartirish uchun pastdagi ro'yxatdan foydalaning."
+        description="Statusni o'zgartirish yoki tarkibini ko'rish uchun qatorni bosing."
         action={
           <GlassButton type="button" onClick={loadOrders} disabled={loading}>
             <ArrowPathIcon className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
@@ -160,7 +339,7 @@ export function OrdersPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px] text-left text-sm">
+              <table className="w-full min-w-[920px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-white/20 bg-white/5 text-ink-500 dark:border-white/10 dark:text-ink-400">
                     <th className="px-6 py-4 font-semibold">ID</th>
@@ -170,52 +349,19 @@ export function OrdersPage() {
                     <th className="px-4 py-4 font-semibold">Summa</th>
                     <th className="px-4 py-4 font-semibold">Sana</th>
                     <th className="px-6 py-4 font-semibold">Status</th>
+                    <th className="pr-4 py-4 font-semibold">
+                      <span className="sr-only">Kengaytirish</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredOrders.map((row) => (
-                    <tr
+                    <OrderTableRow
                       key={row.id}
-                      className={cn(
-                        'border-b border-white/10 last:border-0 dark:border-white/5 transition-colors duration-500',
-                        liveIds.has(row.id) && 'bg-emerald-500/10',
-                      )}
-                    >
-                      <td className="px-6 py-4 font-mono text-xs font-medium text-brand-600 dark:text-accent-cyan">
-                        #{row.code}
-                      </td>
-                      <td className="px-4 py-4 font-medium text-ink-800 dark:text-ink-100">
-                        {row.customer_name}
-                      </td>
-                      <td className="px-4 py-4 text-ink-600 dark:text-ink-300">
-                        {row.phone ?? '—'}
-                      </td>
-                      <td className="px-4 py-4 text-ink-600 dark:text-ink-300 max-w-[180px]">
-                        <span className="line-clamp-2 text-xs leading-relaxed">
-                          {row.address ?? '—'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 text-ink-700 dark:text-ink-200">
-                        {formatCurrency(row.total)}
-                      </td>
-                      <td className="px-4 py-4 text-xs text-ink-500">
-                        {row.created_at
-                          ? new Date(row.created_at).toLocaleString('uz-UZ')
-                          : '—'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <OrderStatusSelect
-                          value={row.status}
-                          onChange={(status) => handleStatusChange(row.id, status)}
-                        />
-                        <p className={cn(
-                          'mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full w-fit',
-                          orderStatusColor(row.status),
-                        )}>
-                          {orderStatusLabel(row.status)}
-                        </p>
-                      </td>
-                    </tr>
+                      row={row}
+                      isLive={liveIds.has(row.id)}
+                      onStatusChange={handleStatusChange}
+                    />
                   ))}
                 </tbody>
               </table>

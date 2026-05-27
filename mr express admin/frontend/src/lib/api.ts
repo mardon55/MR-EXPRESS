@@ -6,6 +6,16 @@ export const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+export interface OrderItem {
+  product_id: number
+  product_name: string
+  image_url: string | null
+  quantity: number
+  unit_price: number
+  old_price: number | null
+  subtotal: number
+}
+
 export interface OrderRow {
   id: number
   code: string
@@ -16,6 +26,7 @@ export interface OrderRow {
   address: string | null
   phone: string | null
   created_at: string
+  items: OrderItem[]
 }
 
 export interface CategoryNode {

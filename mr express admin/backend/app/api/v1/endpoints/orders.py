@@ -111,12 +111,48 @@ async def list_orders(
         *params,
     )
 
+    order_ids = [r["id"] for r in rows]
+    items_map: dict[int, list[dict]] = {}
+    if order_ids:
+        placeholders = ",".join("?" * len(order_ids))
+        item_rows = await db.fetch(
+            f"""
+            SELECT
+                oi.order_id,
+                oi.quantity,
+                oi.price AS unit_price,
+                p.id AS product_id,
+                p.name AS product_name,
+                p.image_url,
+                p.old_price
+            FROM order_items oi
+            JOIN products p ON p.id = oi.product_id
+            WHERE oi.order_id IN ({placeholders})
+            ORDER BY oi.order_id, oi.id
+            """,
+            *order_ids,
+        )
+        for ir in item_rows:
+            oid = ir["order_id"]
+            if oid not in items_map:
+                items_map[oid] = []
+            items_map[oid].append({
+                "product_id": ir["product_id"],
+                "product_name": ir["product_name"],
+                "image_url": ir["image_url"],
+                "quantity": ir["quantity"],
+                "unit_price": float(ir["unit_price"]),
+                "old_price": float(ir["old_price"]) if ir["old_price"] else None,
+                "subtotal": float(ir["unit_price"]) * int(ir["quantity"]),
+            })
+
     items = []
     for r in rows:
+        oid = r["id"]
         items.append(
             {
-                "id": r["id"],
-                "code": f"MR-{r['id']:04d}",
+                "id": oid,
+                "code": f"MR-{oid:04d}",
                 "customer_name": r["customer_name"],
                 "telegram_id": r["telegram_id"],
                 "total": float(r["total"]),
@@ -124,6 +160,7 @@ async def list_orders(
                 "address": r["address"],
                 "phone": r["phone"],
                 "created_at": r["created_at"],
+                "items": items_map.get(oid, []),
             }
         )
 
