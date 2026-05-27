@@ -28,7 +28,7 @@ args = "Telegram Bot"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Admin Panel"
+args = "Mini App Backend"
 
 [[workflows.workflow]]
 name = "Start application"
@@ -39,7 +39,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd 'mr express/backend' && python run_api.py & sleep 3 && cd 'mr express/frontend' && npm run dev -- --port 5000 --host 0.0.0.0"
+args = "cd 'mr express admin/frontend' && npm run dev"
 waitForPort = 5000
 
 [[workflows.workflow]]
@@ -66,24 +66,20 @@ task = "shell.exec"
 args = "cd 'mr express/backend' && python run_bot.py"
 
 [[workflows.workflow]]
-name = "Admin Panel"
+name = "Mini App Backend"
 author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd 'mr express/backend' && python run_api.py"
+waitForPort = 8000
 
 [workflows.workflow.metadata]
 outputType = "console"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd 'mr express admin/frontend' && npm run dev"
-waitForPort = 5173
-
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 5001
-externalPort = 3000
 
 [[ports]]
 localPort = 5173

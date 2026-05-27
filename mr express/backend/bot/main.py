@@ -27,10 +27,11 @@ from bot.uzbekistan_regions import is_valid_location
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-bot = Bot(token=settings.bot_token)
 router = Router()
 dp = Dispatcher()
 dp.include_router(router)
+
+bot: Bot | None = None
 
 ORDER_REJECT_TEXT = (
     "❌ Buyurtmangiz qabul qilinmadi, ma'lumotlarni qayta tekshiring."
@@ -56,13 +57,13 @@ def _shop_keyboard() -> InlineKeyboardMarkup | None:
     )
 
 
-async def setup_menu_button() -> None:
+async def setup_menu_button(bot_instance: Bot) -> None:
     if not settings.webapp_url_valid:
         logger.warning(
             "WEBAPP_URL HTTPS emas! BotFather da Mini App URL ni HTTPS qiling."
         )
         return
-    await bot.set_chat_menu_button(
+    await bot_instance.set_chat_menu_button(
         menu_button=MenuButtonWebApp(
             text="🛍 Do'kon",
             web_app=WebAppInfo(url=settings.webapp_url),
@@ -297,7 +298,7 @@ async def handle_web_app_data(message: Message) -> None:
     """
     Mini App `Telegram.WebApp.sendData()` → message.web_app_data.data
     """
-    if not message.from_user or not message.web_app_data:
+    if not message.from_user or not message.web_app_data or bot is None:
         return
 
     raw = message.web_app_data.data
@@ -389,7 +390,7 @@ async def global_error_handler(event: ErrorEvent) -> bool:
     elif update.callback_query and update.callback_query.message:
         chat_id = update.callback_query.message.chat.id
 
-    if chat_id:
+    if chat_id and bot is not None:
         try:
             await bot.send_message(
                 chat_id,
@@ -404,12 +405,11 @@ async def global_error_handler(event: ErrorEvent) -> bool:
 
 @dp.startup()
 async def on_startup() -> None:
-    if not settings.bot_token:
-        logger.error("BOT_TOKEN .env faylida yo'q!")
+    if bot is None:
         return
     me = await bot.get_me()
     logger.info("Bot: @%s (id=%s)", me.username, me.id)
-    await setup_menu_button()
+    await setup_menu_button(bot)
 
 
 @dp.shutdown()
@@ -420,11 +420,12 @@ async def on_shutdown() -> None:
 
 
 async def main() -> None:
+    global bot
     if not settings.bot_token:
-        logger.error("BOT_TOKEN .env faylida ko'rsatilmagan!")
+        logger.error("BOT_TOKEN muhit o'zgaruvchisida ko'rsatilmagan! Telegram bot ishlamaydi.")
         return
+    bot = Bot(token=settings.bot_token)
     logger.info("Bot polling boshlanmoqda... WEBAPP_URL=%s", settings.webapp_url)
-    # Backend bazani ishga tushirishini kutamiz
     await asyncio.sleep(3)
     await dp.start_polling(bot)
 
