@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -15,6 +15,7 @@ import { api } from '../api';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { useTelegram } from '../hooks/useTelegram';
+import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import PageHeader from '../components/PageHeader';
 import ThemePicker from '../components/profile/ThemePicker';
 import NightMarket from '../components/profile/NightMarket';
@@ -30,8 +31,6 @@ import {
   IconNightMarket,
 } from '../components/icons/ProfileMenuIcons';
 
-const ACTIVE_GROUP_BUYS = [];
-const COMPLETED_GROUP_BUYS = [];
 
 /** Qolgan millisekundlarni hh:mm:ss formatiga aylantiradi */
 function formatCountdown(ms) {
@@ -60,36 +59,45 @@ function useLiveCountdown(expiresAt) {
   return label;
 }
 
-/** Telegram Web App orqali do'stlarni taklif qilish (rasmiy ulashish oynasi) */
-function inviteFriendsToGroup() {
-  const shareUrl = 'https://t.me';
+/** Telegram Web App orqali do'stlarni guruhli xaridga taklif qilish */
+function inviteFriendsToGroup(item) {
   const webApp = window.Telegram?.WebApp;
-  if (webApp?.shareToBot) {
-    webApp.shareToBot(shareUrl);
-    return;
-  }
-  if (window.Telegram?.WebApp?.shareToBot) {
-    window.Telegram.WebApp.shareToBot(shareUrl);
+  const botUsername = 'MR_Expressbot';
+  const text = `🛍 MR Express guruhli xaridiga qo'shiling!\n\n📦 ${item?.name || 'Mahsulot'}\n💰 Guruh narxi: ${item?.groupPrice ? item.groupPrice.toLocaleString('uz-UZ') + " so'm" : ''}\n👥 ${item?.currentMembers || 0}/${item?.requiredMembers || 0} kishi yig'ildi`;
+  const shareLink = `https://t.me/${botUsername}`;
+  const url = `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(text)}`;
+  if (webApp?.openTelegramLink) {
+    webApp.openTelegramLink(url);
+  } else {
+    window.open(url, '_blank');
   }
 }
 
-/** Aktiv guruh kartochkasi — progress, taymer, taklif tugmasi */
-function ActiveGroupCard({ item }) {
+/** Aktiv guruh kartochkasi — progress, taymer, qo'shilish va taklif tugmalari */
+function ActiveGroupCard({ item, onJoin, onLeave, joiningId }) {
   const countdown = useLiveCountdown(item.expiresAt);
   const progressPct = Math.min(
     100,
     Math.round((item.currentMembers / item.requiredMembers) * 100)
   );
   const isUrgent = item.expiresAt - Date.now() < 2 * 60 * 60 * 1000;
+  const isFull = item.currentMembers >= item.requiredMembers;
+  const isLoading = joiningId === item.id;
 
   return (
     <article className="rounded-xl border border-theme bg-theme-card p-2.5 shadow-theme-sm">
       <div className="flex gap-2.5">
-        <img
-          src={item.image}
-          alt=""
-          className="h-[52px] w-[52px] shrink-0 rounded-lg object-cover"
-        />
+        {item.image ? (
+          <img
+            src={item.image}
+            alt=""
+            className="h-[52px] w-[52px] shrink-0 rounded-lg object-cover"
+          />
+        ) : (
+          <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-lg bg-theme-icon">
+            <Users className="h-6 w-6 text-theme-muted" strokeWidth={1.5} />
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <h4 className="line-clamp-2 text-[13px] font-semibold leading-snug text-theme">
             {item.name}
@@ -97,7 +105,14 @@ function ActiveGroupCard({ item }) {
           <p className="mt-0.5 text-[15px] font-bold text-theme-accent">
             {item.groupPrice.toLocaleString('uz-UZ')} so&apos;m
           </p>
-          <p className="text-[10px] font-medium text-theme-muted">Guruh narxi</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-[10px] font-medium text-theme-muted">Guruh narxi</p>
+            {item.isJoined && (
+              <span className="rounded-md bg-emerald-500/12 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                ✓ Qo&apos;shilgansiz
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -148,14 +163,34 @@ function ActiveGroupCard({ item }) {
         </span>
       </div>
 
-      <button
-        type="button"
-        onClick={inviteFriendsToGroup}
-        className="press-fluid btn-theme-accent mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg py-2 text-[12px] font-semibold shadow-theme-sm"
-      >
-        <Share2 className="h-3.5 w-3.5" strokeWidth={2.5} />
-        Do&apos;stlarni taklif qilish
-      </button>
+      <div className="mt-2 flex gap-2">
+        {item.isJoined ? (
+          <button
+            type="button"
+            disabled={isLoading}
+            onClick={() => onLeave(item.id)}
+            className="press-fluid flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-red-50 py-2 text-[12px] font-semibold text-red-600 transition-opacity disabled:opacity-50"
+          >
+            {isLoading ? '...' : 'Guruhdan chiqish'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={isFull || isLoading}
+            onClick={() => onJoin(item.id)}
+            className="press-fluid btn-theme-accent flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-[12px] font-semibold shadow-theme-sm disabled:opacity-50"
+          >
+            {isLoading ? '...' : isFull ? 'Guruh to\'liq' : '+ Guruhga qo\'shilish'}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => inviteFriendsToGroup(item)}
+          className="press-fluid flex items-center justify-center gap-1 rounded-lg border border-theme bg-theme-icon px-3 py-2 text-[12px] font-semibold text-theme-muted"
+        >
+          <Share2 className="h-3.5 w-3.5" strokeWidth={2.5} />
+        </button>
+      </div>
     </article>
   );
 }
@@ -359,51 +394,114 @@ function PromoCodesView({ onBack, ordersCount, tg }) {
   );
 }
 
-/** Guruhli xaridlar ichki sahifasi — tablar va mahsulot kartochkalari shu yerda */
-function GroupBuyingView({ onBack }) {
+/** Guruhli xaridlar ichki sahifasi — real API dan ma'lumot oladi */
+function GroupBuyingView({ onBack, onCountChange }) {
   const [tab, setTab] = useState('active');
+  const [activeGroups, setActiveGroups] = useState([]);
+  const [completedGroups, setCompletedGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [joiningId, setJoiningId] = useState(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const data = await api.groupBuys();
+      const actv = data.active || [];
+      const comp = data.completed || [];
+      setActiveGroups(actv);
+      setCompletedGroups(comp);
+      onCountChange?.(actv.length);
+      setError(null);
+    } catch {
+      setError('Ma\'lumotlarni yuklashda xato');
+    } finally {
+      setLoading(false);
+    }
+  }, [onCountChange]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+  useAutoRefresh(fetchData, 15_000);
+
+  const handleJoin = async (groupId) => {
+    setJoiningId(groupId);
+    try {
+      await api.joinGroupBuy(groupId);
+      await fetchData();
+      window.Telegram?.WebApp?.showAlert?.('✅ Guruhga muvaffaqiyatli qo\'shildingiz!');
+    } catch (e) {
+      window.Telegram?.WebApp?.showAlert?.(e.message || 'Qo\'shilishda xato yuz berdi');
+    } finally {
+      setJoiningId(null);
+    }
+  };
+
+  const handleLeave = async (groupId) => {
+    setJoiningId(groupId);
+    try {
+      await api.leaveGroupBuy(groupId);
+      await fetchData();
+    } catch (e) {
+      window.Telegram?.WebApp?.showAlert?.(e.message || 'Chiqishda xato yuz berdi');
+    } finally {
+      setJoiningId(null);
+    }
+  };
 
   return (
     <SubPage title="Guruhli xaridlarim" onBack={onBack}>
-      <p className="mb-2.5 text-xs text-theme-muted">Do&apos;stlar bilan arzonroq xarid</p>
+      <p className="mb-2.5 text-xs text-theme-muted">Do&apos;stlar bilan birgalikda arzonroq xarid qiling</p>
 
       <div className="mb-2.5 flex gap-1 rounded-xl border border-theme bg-theme-card p-1 shadow-theme-sm">
         <button
           type="button"
           onClick={() => setTab('active')}
           className={`press-fluid flex-1 rounded-lg py-2 text-[12px] font-semibold transition-colors ${
-            tab === 'active'
-              ? 'btn-theme-accent shadow-theme-sm'
-              : 'text-theme-muted'
+            tab === 'active' ? 'btn-theme-accent shadow-theme-sm' : 'text-theme-muted'
           }`}
         >
           Aktiv guruhlar
+          {activeGroups.length > 0 && (
+            <span className="ml-1 rounded-full bg-white/20 px-1.5 text-[10px]">
+              {activeGroups.length}
+            </span>
+          )}
         </button>
         <button
           type="button"
           onClick={() => setTab('completed')}
           className={`press-fluid flex-1 rounded-lg py-2 text-[12px] font-semibold transition-colors ${
-            tab === 'completed'
-              ? 'btn-theme-accent shadow-theme-sm'
-              : 'text-theme-muted'
+            tab === 'completed' ? 'btn-theme-accent shadow-theme-sm' : 'text-theme-muted'
           }`}
         >
-          Tugallangan xaridlar
+          Tugallangan
         </button>
       </div>
 
-      {tab === 'active' && ACTIVE_GROUP_BUYS.length === 0 && (
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-theme-accent border-t-transparent" />
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-center text-xs text-red-600">
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && tab === 'active' && activeGroups.length === 0 && (
         <div className="rounded-xl border border-theme bg-theme-card px-4 py-10 text-center shadow-theme-sm">
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-theme-icon">
             <Users className="h-6 w-6 text-theme-muted" strokeWidth={2} />
           </span>
           <p className="mt-3 text-[15px] font-semibold text-theme">Hali guruh yo&apos;q</p>
           <p className="mt-2 text-xs leading-relaxed text-theme-muted">
-            Admin mahsulot qo&apos;shgandan so&apos;ng guruhli xaridlar shu yerda ko&apos;rinadi.
+            Admin yangi guruhli xarid qo&apos;shganda shu yerda ko&apos;rinadi.
           </p>
         </div>
       )}
-      {tab === 'completed' && COMPLETED_GROUP_BUYS.length === 0 && (
+
+      {!loading && !error && tab === 'completed' && completedGroups.length === 0 && (
         <div className="rounded-xl border border-theme bg-theme-card px-4 py-10 text-center shadow-theme-sm">
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-theme-icon">
             <CheckCircle2 className="h-6 w-6 text-theme-muted" strokeWidth={2} />
@@ -414,20 +512,26 @@ function GroupBuyingView({ onBack }) {
           </p>
         </div>
       )}
-      <ul className="space-y-2">
-        {tab === 'active' &&
-          ACTIVE_GROUP_BUYS.map((item) => (
+
+      {!loading && !error && (
+        <ul className="space-y-2">
+          {tab === 'active' && activeGroups.map((item) => (
             <li key={item.id}>
-              <ActiveGroupCard item={item} />
+              <ActiveGroupCard
+                item={item}
+                onJoin={handleJoin}
+                onLeave={handleLeave}
+                joiningId={joiningId}
+              />
             </li>
           ))}
-        {tab === 'completed' &&
-          COMPLETED_GROUP_BUYS.map((item) => (
+          {tab === 'completed' && completedGroups.map((item) => (
             <li key={item.id}>
               <CompletedGroupCard item={item} />
             </li>
           ))}
-      </ul>
+        </ul>
+      )}
     </SubPage>
   );
 }
@@ -991,6 +1095,7 @@ export default function Profile() {
   const [profile, setProfile] = useState(null);
   const [section, setSection] = useState(null);
   const [savingTheme, setSavingTheme] = useState(false);
+  const [groupBuyCount, setGroupBuyCount] = useState(0);
 
   // Ichki bo'lim ochiq bo'lganda Telegram back button uni yopsin (navigate(-1) emas)
   useEffect(() => {
@@ -1057,7 +1162,12 @@ export default function Profile() {
     );
   }
   if (section === 'group-buy') {
-    return <GroupBuyingView onBack={() => setSection(null)} />;
+    return (
+      <GroupBuyingView
+        onBack={() => setSection(null)}
+        onCountChange={setGroupBuyCount}
+      />
+    );
   }
   if (section === 'promo') {
     return (
@@ -1114,7 +1224,7 @@ export default function Profile() {
           <MenuRow
             icon={IconGroupBuy}
             label="Guruhli xaridlarim"
-            badge={ACTIVE_GROUP_BUYS.length}
+            badge={groupBuyCount || undefined}
             onClick={() => setSection('group-buy')}
           />
           <MenuRow

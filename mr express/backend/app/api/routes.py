@@ -4,6 +4,8 @@ import logging
 import os
 import shutil
 import uuid
+import aiosqlite
+from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, AsyncIterator
@@ -12,6 +14,7 @@ from fastapi import APIRouter, Header, HTTPException, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from app.config import settings
 from app.database import execute, fetch, fetchrow, fetchval, get_db, get_or_create_user
 
 router = APIRouter(prefix="/api")
@@ -922,5 +925,227 @@ async def upload_story(
         "INSERT INTO stories (user_id, name, image_url, media_type, is_active) VALUES (?, ?, ?, ?, 1)",
         uid, user_name, media_url, media_type,
     )
+
+
+# =====================================================================
+# --- GURUHLI XARIDLAR (GROUP BUY) ENDPOINTLARI ---
+# =====================================================================
+
+def _deadline_to_ms(deadline_str: str | None) -> int:
+    """Deadline stringni millisecondga aylantiradi. Yo'q bo'lsa 48 soat."""
+    if deadline_str:
+        try:
+            dt = datetime.fromisoformat(deadline_str.replace("Z", "+00:00"))
+            return int(dt.timestamp() * 1000)
+        except Exception:
+            pass
+    return int((datetime.now().timestamp() + 48 * 3600) * 1000)
+
+
+def _group_buy_public(row: dict, uid: int, joined_ids: set) -> dict:
+    required = int(row.get("required_participants") or 1)
+    current = int(row.get("current_participants") or 0)
+    group_price = row.get("group_price")
+    if not group_price:
+        group_price = round(float(row.get("product_price") or 0) * 0.80)
+    return {
+        "id": row["id"],
+        "name": row.get("product_name") or "",
+        "image": row.get("product_image") or "",
+        "groupPrice": float(group_price),
+        "currentMembers": current,
+        "requiredMembers": required,
+        "expiresAt": _deadline_to_ms(row.get("deadline")),
+        "status": row.get("status") or "active",
+        "isJoined": row["id"] in joined_ids,
+        "progressPercent": min(100, int((current / required) * 100)) if required else 0,
+        "completedAt": (row.get("created_at") or "")[:10],
+    }
+
+
+@router.get("/group-buys")
+async def list_group_buys(
+    x_telegram_user_id: str = Header(..., alias="X-Telegram-User-Id"),
+):
+    """Barcha guruhli xaridlarni qaytaradi — foydalanuvchi qo'shilgan/qo'shilmaganini ham."""
+    tid = _user_id_header(x_telegram_user_id)
+    uid = await _db_user_id(tid)
+
+    rows = await fetch(
+        """
+        SELECT g.*,
+               p.name  AS product_name,
+               p.image_url AS product_image,
+               p.price AS product_price
+        FROM group_buys g
+        JOIN products p ON p.id = g.product_id
+        ORDER BY g.id DESC
+        """,
+    )
+
+    joined_rows = await fetch(
+        "SELECT group_buy_id FROM group_buy_participants WHERE user_id = ?",
+        uid,
+    )
+    joined_ids = {r["group_buy_id"] for r in joined_rows}
+
+    active, completed = [], []
+    for r in rows:
+        item = _group_buy_public(r, uid, joined_ids)
+        if r.get("status") == "active":
+            active.append(item)
+        else:
+            completed.append(item)
+
+    return {"active": active, "completed": completed}
+
+
+@router.post("/group-buys/{group_id}/join")
+async def join_group_buy(
+    group_id: int,
+    x_telegram_user_id: str = Header(..., alias="X-Telegram-User-Id"),
+):
+    """Guruhli xaridga qo'shilish — BEGIN IMMEDIATE orqali xavfsiz."""
+    tid = _user_id_header(x_telegram_user_id)
+    uid = await _db_user_id(tid)
+
+    db_path = str(settings.sqlite_path)
+    async with aiosqlite.connect(db_path, timeout=30.0) as wdb:
+        wdb.row_factory = aiosqlite.Row
+        await wdb.execute("PRAGMA journal_mode=WAL")
+        await wdb.execute("PRAGMA busy_timeout=30000")
+        await wdb.execute("BEGIN IMMEDIATE")
+        try:
+            cur = await wdb.execute("SELECT * FROM group_buys WHERE id = ?", (group_id,))
+            group = await cur.fetchone()
+            if not group:
+                raise HTTPException(404, "Guruhli xarid topilmadi")
+            group = dict(group)
+
+            if group.get("status") != "active":
+                raise HTTPException(400, "Bu guruhli xarid allaqachon yakunlangan yoki bekor qilingan")
+
+            if group.get("deadline"):
+                try:
+                    dl = datetime.fromisoformat(group["deadline"].replace("Z", "+00:00"))
+                    if datetime.now() > dl.replace(tzinfo=None):
+                        await wdb.execute(
+                            "UPDATE group_buys SET status = 'cancelled' WHERE id = ?",
+                            (group_id,),
+                        )
+                        await wdb.commit()
+                        raise HTTPException(400, "Guruhli xarid muddati tugagan")
+                except HTTPException:
+                    raise
+                except Exception:
+                    pass
+
+            cur = await wdb.execute(
+                "SELECT 1 FROM group_buy_participants WHERE group_buy_id = ? AND user_id = ?",
+                (group_id, uid),
+            )
+            if await cur.fetchone():
+                raise HTTPException(409, "Siz bu guruhga allaqachon qo'shilgansiz")
+
+            await wdb.execute(
+                "INSERT INTO group_buy_participants (group_buy_id, user_id) VALUES (?, ?)",
+                (group_id, uid),
+            )
+
+            cur = await wdb.execute(
+                "SELECT COUNT(*) AS cnt FROM group_buy_participants WHERE group_buy_id = ?",
+                (group_id,),
+            )
+            new_count = dict(await cur.fetchone())["cnt"]
+
+            await wdb.execute(
+                "UPDATE group_buys SET current_participants = ? WHERE id = ?",
+                (new_count, group_id),
+            )
+
+            required = int(group.get("required_participants") or 1)
+            completed = new_count >= required
+            if completed:
+                await wdb.execute(
+                    "UPDATE group_buys SET status = 'completed', current_participants = ? WHERE id = ?",
+                    (required, group_id),
+                )
+                await wdb.execute(
+                    """
+                    INSERT INTO notifications (user_id, title, message)
+                    VALUES (?, ?, ?)
+                    """,
+                    (
+                        uid,
+                        "🎉 Guruhli xarid yakunlandi!",
+                        "Tabriklaymiz! Guruh to'ldi va xarid muvaffaqiyatli yakunlandi.",
+                    ),
+                )
+
+            await wdb.commit()
+            return {
+                "ok": True,
+                "current_members": new_count,
+                "required_members": required,
+                "completed": completed,
+            }
+        except HTTPException:
+            await wdb.rollback()
+            raise
+        except Exception as exc:
+            await wdb.rollback()
+            raise HTTPException(500, f"Server xatosi: {exc}") from exc
+
+
+@router.delete("/group-buys/{group_id}/leave")
+async def leave_group_buy(
+    group_id: int,
+    x_telegram_user_id: str = Header(..., alias="X-Telegram-User-Id"),
+):
+    """Guruhli xariddan chiqish."""
+    tid = _user_id_header(x_telegram_user_id)
+    uid = await _db_user_id(tid)
+
+    db_path = str(settings.sqlite_path)
+    async with aiosqlite.connect(db_path, timeout=30.0) as wdb:
+        wdb.row_factory = aiosqlite.Row
+        await wdb.execute("PRAGMA journal_mode=WAL")
+        await wdb.execute("PRAGMA busy_timeout=30000")
+        await wdb.execute("BEGIN IMMEDIATE")
+        try:
+            cur = await wdb.execute("SELECT * FROM group_buys WHERE id = ?", (group_id,))
+            group = await cur.fetchone()
+            if not group:
+                raise HTTPException(404, "Guruhli xarid topilmadi")
+            group = dict(group)
+
+            if group.get("status") != "active":
+                raise HTTPException(400, "Yakunlangan guruhdan chiqib bo'lmaydi")
+
+            cur = await wdb.execute(
+                "DELETE FROM group_buy_participants WHERE group_buy_id = ? AND user_id = ?",
+                (group_id, uid),
+            )
+            if cur.rowcount == 0:
+                raise HTTPException(404, "Siz bu guruhda emassiz")
+
+            cur = await wdb.execute(
+                "SELECT COUNT(*) AS cnt FROM group_buy_participants WHERE group_buy_id = ?",
+                (group_id,),
+            )
+            new_count = dict(await cur.fetchone())["cnt"]
+            await wdb.execute(
+                "UPDATE group_buys SET current_participants = ? WHERE id = ?",
+                (new_count, group_id),
+            )
+
+            await wdb.commit()
+            return {"ok": True, "current_members": new_count}
+        except HTTPException:
+            await wdb.rollback()
+            raise
+        except Exception as exc:
+            await wdb.rollback()
+            raise HTTPException(500, f"Server xatosi: {exc}") from exc
 
     return {"ok": True, "image_url": media_url, "media_type": media_type}

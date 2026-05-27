@@ -124,6 +124,11 @@ export const api = {
     });
   },
 
+  // Guruhli xaridlar (Group Buy)
+  groupBuys: () => request('/api/group-buys'),
+  joinGroupBuy: (id) => request(`/api/group-buys/${id}/join`, { method: 'POST' }),
+  leaveGroupBuy: (id) => request(`/api/group-buys/${id}/leave`, { method: 'DELETE' }),
+
   // Hikoyalar (Stories)
   getStories: () => request('/api/stories'),
   uploadStory: (formData) => {
