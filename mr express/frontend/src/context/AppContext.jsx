@@ -39,14 +39,18 @@ export function AppProvider({ children }) {
     (async () => {
       try {
         const authUser = await loadSession();
+        // Cart va favoritlar fonda yuklanadi — UI ni bloklamaydi
         if (authUser.is_registered) {
-          await Promise.all([refreshCart(), refreshFavorites()]);
+          refreshCart();
+          refreshFavorites();
         }
+      } catch {
+        // auth xatosi — baribir appni ko'rsatamiz
       } finally {
         setLoading(false);
       }
     })();
-  }, [loadSession, refreshCart, refreshFavorites]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const register = async (data) => {
     const u = await api.register(data);

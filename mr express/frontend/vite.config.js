@@ -7,6 +7,18 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
+    target: 'esnext',
+    minify: 'esbuild',
+    cssCodeSplit: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'telegram-sdk': ['@twa-dev/sdk'],
+          'icons': ['lucide-react'],
+        },
+      },
+    },
   },
   server: {
     port: 5173,

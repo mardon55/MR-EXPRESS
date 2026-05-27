@@ -44,7 +44,31 @@ function getTelegramHeaders() {
   return headers;
 }
 
-async function request(path, options = {}) {
+// ─── SWR Cache ────────────────────────────────────────────────────────────────
+const _cache = new Map();
+const CACHE_TTL = 30_000; // 30 soniya
+
+function _cacheGet(path) {
+  const e = _cache.get(path);
+  if (!e) return undefined;
+  if (Date.now() - e.ts > CACHE_TTL) { _cache.delete(path); return undefined; }
+  return e.data;
+}
+
+function _cacheSet(path, data) {
+  _cache.set(path, { data, ts: Date.now() });
+}
+
+export function cacheInvalidate(...prefixes) {
+  for (const k of _cache.keys()) {
+    if (prefixes.some(p => k === p || k.startsWith(p + '?') || k.startsWith(p + '/'))) {
+      _cache.delete(k);
+    }
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function _fetch(path, options = {}) {
   const url = `${API_BASE}${path}`;
   const res = await fetch(url, {
     ...options,
@@ -57,11 +81,32 @@ async function request(path, options = {}) {
   return res.json();
 }
 
+async function request(path, options = {}) {
+  const isGet = !options.method || options.method === 'GET';
+
+  if (isGet) {
+    const hit = _cacheGet(path);
+    if (hit !== undefined) {
+      // Stale-while-revalidate: agar kesh yarim muddatdan o'tgan bo'lsa fonda yangilash
+      const entry = _cache.get(path);
+      if (entry && Date.now() - entry.ts > CACHE_TTL / 2) {
+        _fetch(path, options).then(d => _cacheSet(path, d)).catch(() => {});
+      }
+      return hit;
+    }
+  }
+
+  const data = await _fetch(path, options);
+  if (isGet) _cacheSet(path, data);
+  return data;
+}
+
 export const api = {
-  auth: () => request('/api/auth', { method: 'POST' }),
+  auth: () => _fetch('/api/auth', { method: 'POST' }),
   register: (data) =>
-    request('/api/register', { method: 'POST', body: JSON.stringify(data) }),
-  login: () => request('/api/login', { method: 'POST' }),
+    _fetch('/api/register', { method: 'POST', body: JSON.stringify(data) }),
+  login: () => _fetch('/api/login', { method: 'POST' }),
+
   banners: () => request('/api/banners'),
   categories: () => request('/api/categories'),
   products: (params = {}) => {
@@ -73,42 +118,57 @@ export const api = {
   },
   product: (id) => request(`/api/products/${id}`),
   reels: () => request('/api/reels'),
+
   cart: () => request('/api/cart'),
-  updateCart: (product_id, quantity) =>
-    request('/api/cart', {
+  updateCart: async (product_id, quantity) => {
+    cacheInvalidate('/api/cart');
+    return _fetch('/api/cart', {
       method: 'POST',
       body: JSON.stringify({ product_id, quantity }),
-    }),
+    });
+  },
+
   favorites: () => request('/api/favorites'),
   favoriteIds: () => request('/api/favorites/ids'),
-  toggleFavorite: (id) => request(`/api/favorites/${id}`, { method: 'POST' }),
+  toggleFavorite: async (id) => {
+    cacheInvalidate('/api/favorites');
+    return _fetch(`/api/favorites/${id}`, { method: 'POST' });
+  },
+
   profile: () => request('/api/profile'),
-  updateProfile: (data) =>
-    request('/api/profile', { method: 'PATCH', body: JSON.stringify(data) }),
-  createOrder: (data) =>
-    request('/api/orders', { method: 'POST', body: JSON.stringify(data) }),
+  updateProfile: async (data) => {
+    cacheInvalidate('/api/profile');
+    return _fetch('/api/profile', { method: 'PATCH', body: JSON.stringify(data) });
+  },
+
+  createOrder: async (data) => {
+    cacheInvalidate('/api/orders', '/api/cart');
+    return _fetch('/api/orders', { method: 'POST', body: JSON.stringify(data) });
+  },
   getOrders: () => request('/api/orders'),
 
-  // Bildirishnomalar
   getNotifications: () => request('/api/notifications'),
-  buyNightMarketItem: (item_id) =>
-    request(`/api/night-market/${item_id}/buy`, { method: 'POST' }),
 
-  // Promokod qo'llash
+  buyNightMarketItem: async (item_id) => {
+    cacheInvalidate('/api/night-market', '/api/cart');
+    return _fetch(`/api/night-market/${item_id}/buy`, { method: 'POST' });
+  },
+
   applyPromoCode: (code) =>
-    request('/api/promo/apply', {
+    _fetch('/api/promo/apply', {
       method: 'POST',
       body: JSON.stringify({ code }),
     }),
 
-  // Sharhlar (Reviews)
   getReviews: (productId) => request(`/api/products/${productId}/reviews`),
   canReview: (productId) => request(`/api/products/${productId}/can_review`),
-  createReview: (productId, data) =>
-    request(`/api/products/${productId}/reviews`, {
+  createReview: async (productId, data) => {
+    cacheInvalidate(`/api/products/${productId}`);
+    return _fetch(`/api/products/${productId}/reviews`, {
       method: 'POST',
       body: JSON.stringify(data),
-    }),
+    });
+  },
   uploadReviewPhotos: (files) => {
     const url = `${API_BASE}/api/review-photos`;
     const formData = new FormData();
@@ -126,15 +186,18 @@ export const api = {
     });
   },
 
-  // Promokodlar
   promoCodes: () => request('/api/promo-codes'),
 
-  // Guruhli xaridlar (Group Buy)
   groupBuys: () => request('/api/group-buys'),
-  joinGroupBuy: (id) => request(`/api/group-buys/${id}/join`, { method: 'POST' }),
-  leaveGroupBuy: (id) => request(`/api/group-buys/${id}/leave`, { method: 'DELETE' }),
+  joinGroupBuy: async (id) => {
+    cacheInvalidate('/api/group-buys');
+    return _fetch(`/api/group-buys/${id}/join`, { method: 'POST' });
+  },
+  leaveGroupBuy: async (id) => {
+    cacheInvalidate('/api/group-buys');
+    return _fetch(`/api/group-buys/${id}/leave`, { method: 'DELETE' });
+  },
 
-  // Hikoyalar (Stories)
   getStories: () => request('/api/stories'),
   uploadStory: (formData) => {
     const url = `${API_BASE}/api/stories/upload`;
@@ -150,6 +213,8 @@ export const api = {
       return res.json();
     });
   },
+
+  nightMarket: () => request('/api/night-market'),
 };
 
 export function formatPrice(n) {

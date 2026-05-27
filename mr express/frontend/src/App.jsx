@@ -1,21 +1,32 @@
-import { useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 import LiquidBackground from './components/LiquidBackground';
 import { AppProvider, useApp } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
 import BottomNav from './components/BottomNav';
-import Home from './pages/Home';
-import ReelsPage from './pages/ReelsPage';
-import CatalogPage from './pages/CatalogPage';
-import Cart from './pages/Cart';
-import Favorites from './pages/Favorites';
-import Profile from './pages/Profile';
-import ProductDetail from './pages/ProductDetail';
 import { syncTelegramTopInset } from './utils/telegramSafeArea';
+import { api } from './api';
 
-/** Telegram header/body fon — gradient chekka rangi */
+// ─── Lazy pages (code splitting — har sahifa alohida chunk) ──────────────────
+const Home          = lazy(() => import('./pages/Home'));
+const ReelsPage     = lazy(() => import('./pages/ReelsPage'));
+const CatalogPage   = lazy(() => import('./pages/CatalogPage'));
+const Cart          = lazy(() => import('./pages/Cart'));
+const Favorites     = lazy(() => import('./pages/Favorites'));
+const Profile       = lazy(() => import('./pages/Profile'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const APP_THEME_COLOR = '#eef2ff';
+
+function PageSpinner() {
+  return (
+    <div className="flex flex-1 items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-ios-blue border-t-transparent" />
+    </div>
+  );
+}
 
 function initTelegramFullscreen() {
   const tg = window.Telegram?.WebApp;
@@ -42,15 +53,6 @@ function initTelegramFullscreen() {
   return tg;
 }
 
-/**
- * Telegram orqa tugmasi handler.
- * - Bosh sahifada: BackButton yashirin (app yopiladi)
- * - Boshqa sahifalarda: BackButton ko'rinadi
- *
- * Sahifalar o'z ichki navigatsiyasini override qilishi uchun
- * window.__tgBackHandler = () => {...} ni o'rnatishi mumkin.
- * Sahifa unmount bo'lganda uni tozalashi kerak.
- */
 function TelegramBackButton() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -102,27 +104,27 @@ function Layout() {
     );
   }
 
-  // Registratsiya va AuthGate cheklovlari butunlay o'chirildi. Ilova srazu asosiy qismga o'tadi.
   return (
     <div className={`relative flex min-h-0 flex-1 flex-col ${isReels ? 'bg-black' : ''}`}>
       <TelegramBackButton />
       <main className={`app-main ${isReels ? 'bg-black' : ''}`}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/reels" element={<ReelsPage />} />
-          <Route path="/catalog" element={<CatalogPage />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/favorites" element={<Favorites />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
-        </Routes>
+        <Suspense fallback={<PageSpinner />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/reels" element={<ReelsPage />} />
+            <Route path="/catalog" element={<CatalogPage />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/favorites" element={<Favorites />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+          </Routes>
+        </Suspense>
       </main>
       {!hideNav && <BottomNav />}
     </div>
   );
 }
 
-/** Reels sahifasida gradient fon yashirinadi */
 function AppChrome({ children }) {
   const location = useLocation();
   const isReels = location.pathname === '/reels';
@@ -155,7 +157,15 @@ export default function App() {
     tg?.onEvent?.('contentSafeAreaChanged', syncTelegramTopInset);
     tg?.onEvent?.('viewportChanged', onViewportChanged);
 
+    // Kesh isitish: bosh sahifa ochilganda katalog va reels ma'lumotlari yuklanadi
+    const prefetch = setTimeout(() => {
+      api.categories().catch(() => {});
+      api.reels().catch(() => {});
+      api.getStories().catch(() => {});
+    }, 800);
+
     return () => {
+      clearTimeout(prefetch);
       tg?.offEvent?.('safeAreaChanged', syncTelegramTopInset);
       tg?.offEvent?.('contentSafeAreaChanged', syncTelegramTopInset);
       tg?.offEvent?.('viewportChanged', onViewportChanged);
