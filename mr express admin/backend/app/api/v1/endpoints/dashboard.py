@@ -43,7 +43,7 @@ async def get_recent_orders(limit: int = 8):
             o.id,
             o.total,
             o.status,
-            COALESCE(NULLIF(TRIM(u.first_name || ' ' || u.last_name), ''), u.username, 'Noma''lum') AS customer
+            COALESCE(NULLIF(TRIM(COALESCE(u.first_name, '') || COALESCE(' ' || u.last_name, '')), ''), u.username, 'Noma''lum') AS customer
         FROM orders o
         JOIN users u ON u.id = o.user_id
         ORDER BY o.created_at DESC
