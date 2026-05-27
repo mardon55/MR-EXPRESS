@@ -9,7 +9,7 @@ export default defineConfig({
     assetsDir: 'assets',
   },
   server: {
-    port: 5001,
+    port: 3000,
     host: '0.0.0.0',
     allowedHosts: true,
     proxy: {

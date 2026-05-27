@@ -30,6 +30,10 @@ args = "Telegram Bot"
 task = "workflow.run"
 args = "Mini App Backend"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Mini App Frontend"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
@@ -77,6 +81,18 @@ waitForPort = 8000
 [workflows.workflow.metadata]
 outputType = "console"
 
+[[workflows.workflow]]
+name = "Mini App Frontend"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd 'mr express/frontend' && npm run dev"
+waitForPort = 3000
+
 [[ports]]
 localPort = 5000
 externalPort = 80
@@ -97,6 +113,10 @@ externalPort = 8000
 localPort = 8008
 externalPort = 8008
 
+[[ports]]
+localPort = 3000
+externalPort = 3000
+
 [deployment]
 deploymentTarget = "autoscale"
 run = ["bash", "-c", "cd 'mr express admin/backend' && uvicorn app.main:app --host 0.0.0.0 --port 8008 & cd 'mr express/backend' && uvicorn app.main:app --host 0.0.0.0 --port 8000 & cd 'mr express admin/frontend' && npm run dev -- --port 5000 --host 0.0.0.0"]
@@ -105,4 +125,4 @@ build = ["bash", "-c", "cd 'mr express admin/frontend' && npm run build && cd '.
 [userenv]
 
 [userenv.shared]
-WEBAPP_URL = "https://543c8039-3a43-4749-afb5-891bd98f2748-00-21eqn5rvuhafb.sisko.replit.dev"
+WEBAPP_URL = "https://543c8039-3a43-4749-afb5-891bd98f2748-3000-21eqn5rvuhafb.sisko.replit.dev"
