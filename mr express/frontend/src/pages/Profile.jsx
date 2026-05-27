@@ -577,40 +577,35 @@ function SubPage({ title, onBack, children }) {
   );
 }
 
+const STATUS_NORMALIZE_MAP = {
+  'Aktiv': 'active', 'aktiv': 'active', 'processing': 'active',
+  'on_the_way': 'arrived', 'in_uzbekistan': 'arrived', 'delivering': 'arrived',
+  'yetkazildi': 'delivered', 'topshirildi': 'delivered',
+  'Yetkazildi': 'delivered', 'Yetib keldi': 'arrived',
+  'Tasdiqlandi': 'confirmed',
+};
+
+function normalizeOrderStatus(s) {
+  if (!s) return 'active';
+  return STATUS_NORMALIZE_MAP[s] || s;
+}
+
 const ORDER_STATUS_LABEL = {
-  'confirmed':    'Tasdiqlandi',
-  'active':       'Aktiv',
-  'arrived':      'Yetib keldi',
-  'delivered':    'Yetkazildi',
-  // legacy
-  'Aktiv': 'Aktiv',
-  'aktiv': 'Aktiv',
-  'processing': 'Aktiv',
-  'on_the_way': 'Yetib keldi',
-  'in_uzbekistan': 'Yetib keldi',
-  'delivering': 'Yetib keldi',
-  'yetkazildi': 'Yetkazildi',
-  'topshirildi': 'Yetkazildi',
+  'confirmed': 'Tasdiqlandi',
+  'active':    'Aktiv',
+  'arrived':   'Yetib keldi',
+  'delivered': 'Yetkazildi',
 };
 
 const ORDER_STATUS_COLOR = {
-  'confirmed':    'bg-blue-100 text-blue-700',
-  'active':       'bg-amber-100 text-amber-700',
-  'arrived':      'bg-violet-100 text-violet-700',
-  'delivered':    'bg-emerald-100 text-emerald-700',
-  // legacy
-  'Aktiv': 'bg-amber-100 text-amber-700',
-  'aktiv': 'bg-amber-100 text-amber-700',
-  'processing': 'bg-amber-100 text-amber-700',
-  'on_the_way': 'bg-violet-100 text-violet-700',
-  'in_uzbekistan': 'bg-violet-100 text-violet-700',
-  'delivering': 'bg-violet-100 text-violet-700',
-  'yetkazildi': 'bg-emerald-100 text-emerald-700',
-  'topshirildi': 'bg-emerald-100 text-emerald-700',
+  'confirmed': 'bg-blue-100 text-blue-700',
+  'active':    'bg-amber-100 text-amber-700',
+  'arrived':   'bg-violet-100 text-violet-700',
+  'delivered': 'bg-emerald-100 text-emerald-700',
 };
 
-function statusLabel(s) { return ORDER_STATUS_LABEL[s] || s || 'Aktiv'; }
-function statusColor(s) { return ORDER_STATUS_COLOR[s] || 'bg-neutral-100 text-neutral-600'; }
+function statusLabel(s) { return ORDER_STATUS_LABEL[normalizeOrderStatus(s)] || s || 'Aktiv'; }
+function statusColor(s) { return ORDER_STATUS_COLOR[normalizeOrderStatus(s)] || 'bg-neutral-100 text-neutral-600'; }
 
 function formatOrderDate(dt) {
   if (!dt) return '';
@@ -631,7 +626,7 @@ function OrdersView({ onBack }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('confirmed');
+  const [activeTab, setActiveTab] = useState('active');
   const [flashIds, setFlashIds] = useState(new Set());
 
   function flash(ids) {
@@ -641,7 +636,10 @@ function OrdersView({ onBack }) {
 
   useEffect(() => {
     api.getOrders()
-      .then((data) => setOrders(Array.isArray(data) ? data : []))
+      .then((data) => {
+        const rows = Array.isArray(data) ? data : [];
+        setOrders(rows.map((o) => ({ ...o, status: normalizeOrderStatus(o.status) })));
+      })
       .catch(() => setError('Buyurtmalarni yuklashda xato'))
       .finally(() => setLoading(false));
   }, []);
@@ -655,7 +653,9 @@ function OrdersView({ onBack }) {
       try {
         const event = JSON.parse(e.data);
         if (event.type === 'status_update' && Array.isArray(event.orders)) {
-          const changedMap = new Map(event.orders.map((o) => [o.id, o.status]));
+          const changedMap = new Map(
+            event.orders.map((o) => [o.id, normalizeOrderStatus(o.status)]),
+          );
           setOrders((prev) =>
             prev.map((o) => (changedMap.has(o.id) ? { ...o, status: changedMap.get(o.id) } : o)),
           );

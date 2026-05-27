@@ -437,12 +437,23 @@ export default function Cart() {
       >
         <h1 className="mb-5 text-[28px] font-bold tracking-tight text-neutral-900">Savatcha</h1>
         <div className="space-y-3.5">
-          {cart.items.map((item) => (
+          {cart.items.map((item) => {
+            const hasDiscount = item.product.old_price && item.product.old_price > item.product.price;
+            return (
             <div key={item.cart_id} className="glass flex gap-3.5 rounded-squircle p-3.5 shadow-glass">
-              <img src={item.product.image_url} alt="" className="h-[76px] w-[76px] rounded-squircle object-cover" />
+              {item.product.image_url ? (
+                <img src={item.product.image_url} alt="" className="h-[76px] w-[76px] shrink-0 rounded-squircle object-cover" />
+              ) : (
+                <div className="flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-squircle bg-neutral-100 text-2xl">📦</div>
+              )}
               <div className="flex min-w-0 flex-1 flex-col justify-between">
                 <h3 className="line-clamp-2 text-sm font-semibold text-neutral-800">{item.product.name}</h3>
-                <p className="text-sm font-bold text-ios-blue">{formatPrice(item.product.price)}</p>
+                <div>
+                  <p className="text-sm font-bold text-ios-blue">{formatPrice(item.product.price)}</p>
+                  {hasDiscount && (
+                    <p className="text-[11px] text-neutral-400 line-through">{formatPrice(item.product.old_price)}</p>
+                  )}
+                </div>
                 <div className="flex items-center gap-3">
                   <button type="button" onClick={() => updateQty(item.product.id, item.quantity - 1)}
                     className="press-fluid glass-subtle flex h-8 w-8 items-center justify-center rounded-full text-lg font-medium text-neutral-700">−</button>
@@ -453,7 +464,8 @@ export default function Cart() {
               </div>
               <p className="shrink-0 text-sm font-bold text-neutral-800">{formatPrice(item.subtotal)}</p>
             </div>
-          ))}
+          );
+          })}
         </div>
       </div>
 
