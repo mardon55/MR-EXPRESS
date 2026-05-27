@@ -23,6 +23,11 @@ export default defineConfig({
         target: 'http://localhost:8008',
         changeOrigin: true,
       },
+      '/shop': {
+        target: 'http://localhost:5173',
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
 })

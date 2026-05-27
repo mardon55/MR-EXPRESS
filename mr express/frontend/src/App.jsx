@@ -164,7 +164,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <BrowserRouter>
+      <BrowserRouter basename="/shop">
         <ThemeProvider>
           <AppProvider>
             <AppChrome>
