@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { CreditCardIcon, TruckIcon } from '@heroicons/react/24/outline'
+import { CreditCardIcon, TruckIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline'
 import { motion } from 'framer-motion'
 
 const API = '/api/v1/settings/payment'
 const CARGO_API = '/api/v1/settings/cargo-rate'
+const SUPPORT_API = '/api/v1/settings/support'
 
 function formatCardDisplay(num: string) {
   const digits = num.replace(/\D/g, '')
@@ -22,15 +23,23 @@ export function SettingsPage() {
   const [cargoSaving, setCargoSaving] = useState(false)
   const [cargoSaved, setCargoSaved] = useState(false)
 
+  const [supportUsername, setSupportUsername] = useState('')
+  const [supportGroup, setSupportGroup] = useState('')
+  const [supportSaving, setSupportSaving] = useState(false)
+  const [supportSaved, setSupportSaved] = useState(false)
+
   useEffect(() => {
     Promise.all([
       fetch(API).then((r) => r.json()),
       fetch(CARGO_API).then((r) => r.json()),
-    ]).then(([payment, cargo]) => {
+      fetch(SUPPORT_API).then((r) => r.json()),
+    ]).then(([payment, cargo, support]) => {
       setCardNumber(payment.card_number || '')
       setCardHolder(payment.card_holder || '')
       setBankName(payment.bank_name || '')
       setCargoRate(String(cargo.rate_per_kg ?? 12000))
+      setSupportUsername(support.support_username || '')
+      setSupportGroup(support.support_group || '')
     }).finally(() => setLoading(false))
   }, [])
 
@@ -64,6 +73,22 @@ export function SettingsPage() {
     setCargoSaving(false)
     setCargoSaved(true)
     setTimeout(() => setCargoSaved(false), 3000)
+  }
+
+  const handleSupportSave = async () => {
+    setSupportSaving(true)
+    setSupportSaved(false)
+    await fetch(SUPPORT_API, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        support_username: supportUsername.trim().replace(/^@/, ''),
+        support_group: supportGroup.trim().replace(/^@/, ''),
+      }),
+    })
+    setSupportSaving(false)
+    setSupportSaved(true)
+    setTimeout(() => setSupportSaved(false), 3000)
   }
 
   const displayNum = formatCardDisplay(cardNumber) || '•••• •••• •••• ••••'
@@ -204,6 +229,69 @@ export function SettingsPage() {
           className="w-full rounded-xl bg-brand-500 py-3.5 text-[15px] font-semibold text-white shadow-lg transition hover:bg-brand-600 disabled:opacity-60"
         >
           {cargoSaving ? 'Saqlanmoqda...' : cargoSaved ? '✅ Saqlandi!' : 'Kargo narxini saqlash'}
+        </button>
+      </div>
+
+      {/* Qo'llab-quvvatlash */}
+      <div className="frosted-glass rounded-3xl p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500/10">
+            <ChatBubbleLeftRightIcon className="h-5 w-5 text-brand-500" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-ink-900 dark:text-white">Qo'llab-quvvatlash</h2>
+            <p className="text-xs text-ink-500 dark:text-ink-400">Mijozlar ko'radigan aloqa ma'lumotlari</p>
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-400">
+            Operator nickname (lichka)
+          </label>
+          <div className="flex items-center rounded-xl border border-white/20 bg-white/10 overflow-hidden focus-within:ring-2 focus-within:ring-brand-500/30">
+            <span className="pl-4 text-[15px] text-ink-400 select-none">@</span>
+            <input
+              type="text"
+              value={supportUsername}
+              onChange={(e) => setSupportUsername(e.target.value.replace(/^@/, '').replace(/\s/g, ''))}
+              placeholder="username"
+              className="flex-1 bg-transparent px-2 py-3 text-[15px] text-ink-900 outline-none placeholder:text-ink-400 dark:text-white"
+            />
+          </div>
+          {supportUsername && (
+            <p className="mt-1 text-xs text-ink-400">
+              Havola: t.me/{supportUsername}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-400">
+            Guruh / Kanal username
+          </label>
+          <div className="flex items-center rounded-xl border border-white/20 bg-white/10 overflow-hidden focus-within:ring-2 focus-within:ring-brand-500/30">
+            <span className="pl-4 text-[15px] text-ink-400 select-none">@</span>
+            <input
+              type="text"
+              value={supportGroup}
+              onChange={(e) => setSupportGroup(e.target.value.replace(/^@/, '').replace(/\s/g, ''))}
+              placeholder="guruh_nomi"
+              className="flex-1 bg-transparent px-2 py-3 text-[15px] text-ink-900 outline-none placeholder:text-ink-400 dark:text-white"
+            />
+          </div>
+          {supportGroup && (
+            <p className="mt-1 text-xs text-ink-400">
+              Havola: t.me/{supportGroup}
+            </p>
+          )}
+        </div>
+
+        <button
+          onClick={handleSupportSave}
+          disabled={supportSaving}
+          className="w-full rounded-xl bg-brand-500 py-3.5 text-[15px] font-semibold text-white shadow-lg transition hover:bg-brand-600 disabled:opacity-60"
+        >
+          {supportSaving ? 'Saqlanmoqda...' : supportSaved ? '✅ Saqlandi!' : 'Saqlash'}
         </button>
       </div>
     </motion.div>

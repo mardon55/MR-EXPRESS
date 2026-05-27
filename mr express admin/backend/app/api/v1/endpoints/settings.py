@@ -16,6 +16,11 @@ class CargoRateUpdate(BaseModel):
     rate_per_kg: int = 12000
 
 
+class SupportSettingsUpdate(BaseModel):
+    support_username: str = ""
+    support_group: str = ""
+
+
 @router.get("/payment")
 async def get_payment_settings():
     await db.execute(
@@ -87,3 +92,40 @@ async def update_cargo_rate(body: CargoRateUpdate):
         body.rate_per_kg,
     )
     return {"ok": True, "rate_per_kg": body.rate_per_kg}
+
+
+# ── Qo'llab-quvvatlash sozlamalari ─────────────────────────────────────────────
+
+async def _ensure_support_table():
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS support_settings (
+            id INTEGER PRIMARY KEY DEFAULT 1,
+            support_username TEXT DEFAULT '',
+            support_group TEXT DEFAULT '',
+            updated_at TEXT DEFAULT (datetime('now'))
+        )
+        """
+    )
+    await db.execute("INSERT OR IGNORE INTO support_settings (id) VALUES (1)")
+
+
+@router.get("/support")
+async def get_support_settings():
+    await _ensure_support_table()
+    row = await db.fetchrow("SELECT support_username, support_group FROM support_settings WHERE id = 1")
+    return {
+        "support_username": row["support_username"] or "" if row else "",
+        "support_group": row["support_group"] or "" if row else "",
+    }
+
+
+@router.put("/support")
+async def update_support_settings(body: SupportSettingsUpdate):
+    await _ensure_support_table()
+    await db.execute(
+        "UPDATE support_settings SET support_username = ?, support_group = ?, updated_at = datetime('now') WHERE id = 1",
+        body.support_username.strip().lstrip("@"),
+        body.support_group.strip().lstrip("@"),
+    )
+    return {"ok": True, "support_username": body.support_username.strip().lstrip("@"), "support_group": body.support_group.strip().lstrip("@")}

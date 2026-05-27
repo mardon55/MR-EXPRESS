@@ -867,6 +867,18 @@ function HelpAccordion({ icon, title, children }) {
 }
 
 function HelpView({ onBack, tg }) {
+  const [support, setSupport] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/settings/support')
+      .then((r) => r.json())
+      .then(setSupport)
+      .catch(() => setSupport({ support_username: '', support_group: '' }));
+  }, []);
+
+  const username = support?.support_username || '';
+  const group = support?.support_group || '';
+
   return (
     <SubPage title="Yordam markazi" onBack={onBack}>
       <div className="space-y-2">
@@ -896,19 +908,55 @@ function HelpView({ onBack, tg }) {
         <HelpAccordion icon="🎧" title="Qo'llab-quvvatlash">
           <div className="space-y-3 text-[13px]">
             <p className="leading-relaxed text-theme-muted">
-              Savol yoki muammo bo&apos;lsa — bizga Telegram orqali yozing. Ish vaqti: <span className="font-semibold text-theme">09:00 – 22:00</span> (dush–shan).
+              Savol yoki muammo bo&apos;lsa — bizga Telegram orqali yozing. Ish vaqti:{' '}
+              <span className="font-semibold text-theme">09:00 – 22:00</span> (dush–shan).
             </p>
-            <div className="rounded-lg bg-theme-icon px-3 py-2.5">
-              <p className="text-xs text-theme-muted">Telegram kanal</p>
-              <p className="font-semibold text-theme">@MR_EXPRESSBOT</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => tg?.openTelegramLink?.('https://t.me/MR_EXPRESSBOT')}
-              className="press-fluid w-full rounded-xl border border-theme-accent py-2.5 text-[13px] font-semibold text-theme-accent"
-            >
-              Chat orqali yozish
-            </button>
+
+            {support == null ? (
+              <div className="flex justify-center py-2">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-theme-accent border-t-transparent" />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {username ? (
+                  <div className="flex items-center justify-between rounded-lg bg-theme-icon px-3 py-2.5">
+                    <div>
+                      <p className="text-[11px] text-theme-muted">Operator (lichka)</p>
+                      <p className="font-semibold text-theme">@{username}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => tg?.openTelegramLink?.(`https://t.me/${username}`)}
+                      className="press-fluid rounded-lg bg-theme-accent px-3 py-1.5 text-[11px] font-semibold text-white"
+                    >
+                      Yozish
+                    </button>
+                  </div>
+                ) : null}
+
+                {group ? (
+                  <div className="flex items-center justify-between rounded-lg bg-theme-icon px-3 py-2.5">
+                    <div>
+                      <p className="text-[11px] text-theme-muted">Guruh / Kanal</p>
+                      <p className="font-semibold text-theme">@{group}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => tg?.openTelegramLink?.(`https://t.me/${group}`)}
+                      className="press-fluid rounded-lg border border-theme-accent px-3 py-1.5 text-[11px] font-semibold text-theme-accent"
+                    >
+                      Ochish
+                    </button>
+                  </div>
+                ) : null}
+
+                {!username && !group && (
+                  <p className="text-center text-xs text-theme-muted py-1">
+                    Admin hali aloqa ma&apos;lumotlarini kiritmagan
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </HelpAccordion>
 

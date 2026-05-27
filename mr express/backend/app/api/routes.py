@@ -785,6 +785,27 @@ async def mark_delivered(
 # --- HIKOYALAR (STORIES) TIZIMI ENDPOINTLARI ---
 # =====================================================================
 
+@router.get("/settings/support")
+async def get_support_settings():
+    """Qo'llab-quvvatlash sozlamalarini qaytaradi (admin belgilaydi)."""
+    await execute(
+        """
+        CREATE TABLE IF NOT EXISTS support_settings (
+            id INTEGER PRIMARY KEY DEFAULT 1,
+            support_username TEXT DEFAULT '',
+            support_group TEXT DEFAULT '',
+            updated_at TEXT DEFAULT (datetime('now'))
+        )
+        """
+    )
+    await execute("INSERT OR IGNORE INTO support_settings (id) VALUES (1)")
+    row = await fetchrow("SELECT support_username, support_group FROM support_settings WHERE id = 1")
+    return {
+        "support_username": row["support_username"] or "" if row else "",
+        "support_group": row["support_group"] or "" if row else "",
+    }
+
+
 @router.get("/settings/cargo-rate")
 async def get_cargo_rate():
     """Kargo narxini qaytaradi (admin belgilaydi)."""
