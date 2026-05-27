@@ -6,20 +6,22 @@ import { useTelegram } from '../hooks/useTelegram';
 import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import ProductGrid from '../components/ProductGrid';
 
+const BASE = import.meta.env.BASE_URL;
+
 const SIDEBAR_IMAGES = {
-  'elektronika':  '/categories/sidebar-elektronika.png',
-  'kiyimlar':     '/categories/sidebar-kiyimlar.png',
-  'uy-rozgor':    '/categories/sidebar-uy-rozgor.png',
-  'gozallik':     '/categories/sidebar-gozallik.png',
-  'oyinchoqlar':  '/categories/sidebar-oyinchoqlar.png',
+  'elektronika':  `${BASE}categories/sidebar-elektronika.png`,
+  'kiyimlar':     `${BASE}categories/sidebar-kiyimlar.png`,
+  'uy-rozgor':    `${BASE}categories/sidebar-uy-rozgor.png`,
+  'gozallik':     `${BASE}categories/sidebar-gozallik.png`,
+  'oyinchoqlar':  `${BASE}categories/sidebar-oyinchoqlar.png`,
 };
 
 const HAMMASI_IMAGES = {
-  'elektronika':  '/categories/hammasi-elektronika.png',
-  'kiyimlar':     '/categories/hammasi-kiyimlar.png',
-  'uy-rozgor':    '/categories/hammasi-uy-rozgor.png',
-  'gozallik':     '/categories/hammasi-gozallik.png',
-  'oyinchoqlar':  '/categories/hammasi-oyinchoqlar.png',
+  'elektronika':  `${BASE}categories/hammasi-elektronika.png`,
+  'kiyimlar':     `${BASE}categories/hammasi-kiyimlar.png`,
+  'uy-rozgor':    `${BASE}categories/hammasi-uy-rozgor.png`,
+  'gozallik':     `${BASE}categories/hammasi-gozallik.png`,
+  'oyinchoqlar':  `${BASE}categories/hammasi-oyinchoqlar.png`,
 };
 
 const GLASS_INDICATOR_STYLE = {
