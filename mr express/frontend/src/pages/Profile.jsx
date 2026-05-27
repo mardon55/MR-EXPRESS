@@ -525,12 +525,19 @@ function formatOrderDate(dt) {
   } catch { return dt; }
 }
 
+const ORDER_TABS = [
+  { key: 'confirmed', label: 'Yangi' },
+  { key: 'active',    label: 'Jarayonda' },
+  { key: 'arrived',   label: 'Yuborilgan' },
+  { key: 'delivered', label: 'Yetkazildi' },
+];
+
 function OrdersView({ onBack }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('confirmed');
   const [flashIds, setFlashIds] = useState(new Set());
-  const ordersRef = useRef([]);
 
   function flash(ids) {
     setFlashIds(new Set(ids));
@@ -539,12 +546,8 @@ function OrdersView({ onBack }) {
 
   useEffect(() => {
     api.getOrders()
-      .then((data) => {
-        const arr = Array.isArray(data) ? data : [];
-        ordersRef.current = arr;
-        setOrders(arr);
-      })
-      .catch(() => setError("Buyurtmalarni yuklashda xato"))
+      .then((data) => setOrders(Array.isArray(data) ? data : []))
+      .catch(() => setError('Buyurtmalarni yuklashda xato'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -558,13 +561,9 @@ function OrdersView({ onBack }) {
         const event = JSON.parse(e.data);
         if (event.type === 'status_update' && Array.isArray(event.orders)) {
           const changedMap = new Map(event.orders.map((o) => [o.id, o.status]));
-          setOrders((prev) => {
-            const next = prev.map((o) =>
-              changedMap.has(o.id) ? { ...o, status: changedMap.get(o.id) } : o,
-            );
-            ordersRef.current = next;
-            return next;
-          });
+          setOrders((prev) =>
+            prev.map((o) => (changedMap.has(o.id) ? { ...o, status: changedMap.get(o.id) } : o)),
+          );
           flash([...changedMap.keys()]);
         }
       } catch {}
@@ -574,8 +573,41 @@ function OrdersView({ onBack }) {
     return () => es.close();
   }, []);
 
+  const tabOrders = orders.filter((o) => o.status === activeTab);
+  const countFor = (key) => orders.filter((o) => o.status === key).length;
+
   return (
     <SubPage title="Buyurtmalarim" onBack={onBack}>
+      {/* Tabs */}
+      <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+        {ORDER_TABS.map((tab) => {
+          const count = countFor(tab.key);
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-1.5 text-[13px] font-semibold transition-all duration-200 ${
+                isActive
+                  ? 'border-theme-accent bg-theme-accent text-white shadow-sm'
+                  : 'border-theme bg-theme-card text-theme-muted hover:border-theme-accent/50 hover:text-theme'
+              }`}
+            >
+              {tab.label}
+              {count > 0 && (
+                <span
+                  className={`flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold ${
+                    isActive ? 'bg-white/30 text-white' : 'bg-theme-accent/15 text-theme-accent'
+                  }`}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-10">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-theme-accent border-t-transparent" />
@@ -584,17 +616,19 @@ function OrdersView({ onBack }) {
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-6 text-center">
           <p className="text-sm font-medium text-red-600">{error}</p>
         </div>
-      ) : orders.length === 0 ? (
+      ) : tabOrders.length === 0 ? (
         <div className="rounded-xl border border-theme bg-theme-card px-4 py-10 text-center shadow-theme-sm">
           <ShoppingBag className="mx-auto h-10 w-10 text-theme-muted" strokeWidth={1.5} />
-          <p className="mt-3 text-[15px] font-semibold text-theme">Hali buyurtma yo&apos;q</p>
+          <p className="mt-3 text-[15px] font-semibold text-theme">
+            {ORDER_TABS.find((t) => t.key === activeTab)?.label} buyurtmalar yo&apos;q
+          </p>
           <p className="mt-1.5 text-xs leading-relaxed text-theme-muted">
-            Birinchi buyurtmangiz bu yerda ko&apos;rinadi.
+            Bu bo&apos;limda hozircha buyurtma ko&apos;rinmaydi.
           </p>
         </div>
       ) : (
         <ul className="space-y-2">
-          {orders.map((order) => (
+          {tabOrders.map((order) => (
             <li
               key={order.id}
               className={`rounded-xl border p-3.5 shadow-theme-sm transition-colors duration-700 ${
