@@ -1,18 +1,67 @@
+import asyncio
+import json
+import logging
+from typing import AsyncIterator
+
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.db import sqlite as db
-from app.schemas.order_status import ORDER_STATUSES, normalize_status
+from app.schemas.order_status import ORDER_STATUSES, normalize_status, raw_values_for
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+_sse_queues: list[asyncio.Queue] = []
+
+
+async def _broadcast(event: dict) -> None:
+    data = json.dumps(event)
+    for q in list(_sse_queues):
+        try:
+            q.put_nowait(data)
+        except asyncio.QueueFull:
+            pass
 
 
 class OrderStatusUpdate(BaseModel):
-    status: str = Field(..., description="confirmed | processing | on_the_way | in_uzbekistan | delivering | delivered")
+    status: str = Field(..., description="confirmed | active | arrived | delivered")
 
 
 class OrderPatch(BaseModel):
     status: str | None = None
+
+
+@router.get("/events")
+async def order_events():
+    queue: asyncio.Queue = asyncio.Queue(maxsize=100)
+    _sse_queues.append(queue)
+
+    async def generate() -> AsyncIterator[str]:
+        try:
+            yield 'data: {"type":"connected"}\n\n'
+            while True:
+                try:
+                    data = await asyncio.wait_for(queue.get(), timeout=25.0)
+                    yield f"data: {data}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": heartbeat\n\n"
+        finally:
+            try:
+                _sse_queues.remove(queue)
+            except ValueError:
+                pass
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
 
 
 @router.get("")
@@ -27,10 +76,13 @@ async def list_orders(
 
     conditions = ["1=1"]
     params: list = []
+
     if status:
         norm = normalize_status(status)
-        conditions.append("LOWER(o.status) = ? OR o.status = ?")
-        params.extend([norm, status])
+        raw_vals = raw_values_for(norm)
+        placeholders = ",".join("?" * len(raw_vals))
+        conditions.append(f"LOWER(o.status) IN ({placeholders})")
+        params.extend([v.lower() for v in raw_vals])
 
     where = " AND ".join(conditions)
     rows = await db.fetch(
@@ -92,6 +144,7 @@ async def patch_order(order_id: int, body: OrderPatch):
         raise HTTPException(404, "Buyurtma topilmadi")
 
     await db.execute("UPDATE orders SET status = ? WHERE id = ?", status, order_id)
+    await _broadcast({"type": "status_update", "order_id": order_id, "status": status})
     return {"id": order_id, "status": status}
 
 

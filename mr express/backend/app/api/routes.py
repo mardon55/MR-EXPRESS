@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -5,9 +6,10 @@ import shutil
 import uuid
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, AsyncIterator
 
 from fastapi import APIRouter, Header, HTTPException, Query, UploadFile, File
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.database import execute, fetch, fetchrow, fetchval, get_db, get_or_create_user
@@ -451,6 +453,57 @@ async def list_orders(
             "created_at": r["created_at"],
         })
     return result
+
+
+@router.get("/orders/events")
+async def order_events_stream(
+    tid: str | None = Query(default=None),
+    x_telegram_user_id: str | None = Header(default=None, alias="X-Telegram-User-Id"),
+):
+    raw_id = tid or x_telegram_user_id
+    if not raw_id:
+        raise HTTPException(401, "Telegram user ID required")
+    user_tid = _user_id_header(raw_id)
+    uid = await _db_user_id(user_tid)
+
+    async def generate() -> AsyncIterator[str]:
+        last_states: dict[int, str] = {}
+        rows = await fetch(
+            "SELECT id, status FROM orders WHERE user_id = ?",
+            uid,
+        )
+        for r in rows:
+            last_states[r["id"]] = r["status"] or ""
+        yield f"data: {json.dumps({'type': 'connected'})}\n\n"
+        while True:
+            await asyncio.sleep(4)
+            try:
+                rows = await fetch(
+                    "SELECT id, status FROM orders WHERE user_id = ?",
+                    uid,
+                )
+                changes = []
+                for r in rows:
+                    new_status = r["status"] or ""
+                    if last_states.get(r["id"]) != new_status:
+                        last_states[r["id"]] = new_status
+                        changes.append({"id": r["id"], "status": new_status})
+                if changes:
+                    yield f"data: {json.dumps({'type': 'status_update', 'orders': changes})}\n\n"
+                else:
+                    yield ": heartbeat\n\n"
+            except Exception:
+                yield ": error\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
 
 
 @router.post("/orders")

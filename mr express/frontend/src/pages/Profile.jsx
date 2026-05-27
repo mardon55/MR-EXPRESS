@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -483,27 +483,33 @@ function SubPage({ title, onBack, children }) {
 }
 
 const ORDER_STATUS_LABEL = {
+  'confirmed':    'Tasdiqlandi',
+  'active':       'Aktiv',
+  'arrived':      'Yetib keldi',
+  'delivered':    'Yetkazildi',
+  // legacy
   'Aktiv': 'Aktiv',
   'aktiv': 'Aktiv',
-  'confirmed': 'Tasdiqlandi',
-  'processing': 'Jarayonda',
-  'on_the_way': "Yo'lda",
-  'in_uzbekistan': "O'zbekistonda",
-  'delivering': 'Yetkazilmoqda',
-  'delivered': 'Yetkazildi',
+  'processing': 'Aktiv',
+  'on_the_way': 'Yetib keldi',
+  'in_uzbekistan': 'Yetib keldi',
+  'delivering': 'Yetib keldi',
   'yetkazildi': 'Yetkazildi',
   'topshirildi': 'Yetkazildi',
 };
 
 const ORDER_STATUS_COLOR = {
+  'confirmed':    'bg-blue-100 text-blue-700',
+  'active':       'bg-amber-100 text-amber-700',
+  'arrived':      'bg-violet-100 text-violet-700',
+  'delivered':    'bg-emerald-100 text-emerald-700',
+  // legacy
   'Aktiv': 'bg-amber-100 text-amber-700',
   'aktiv': 'bg-amber-100 text-amber-700',
-  'confirmed': 'bg-blue-100 text-blue-700',
   'processing': 'bg-amber-100 text-amber-700',
-  'on_the_way': 'bg-cyan-100 text-cyan-700',
+  'on_the_way': 'bg-violet-100 text-violet-700',
   'in_uzbekistan': 'bg-violet-100 text-violet-700',
-  'delivering': 'bg-indigo-100 text-indigo-700',
-  'delivered': 'bg-emerald-100 text-emerald-700',
+  'delivering': 'bg-violet-100 text-violet-700',
   'yetkazildi': 'bg-emerald-100 text-emerald-700',
   'topshirildi': 'bg-emerald-100 text-emerald-700',
 };
@@ -523,12 +529,49 @@ function OrdersView({ onBack }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [flashIds, setFlashIds] = useState(new Set());
+  const ordersRef = useRef([]);
+
+  function flash(ids) {
+    setFlashIds(new Set(ids));
+    setTimeout(() => setFlashIds(new Set()), 2500);
+  }
 
   useEffect(() => {
     api.getOrders()
-      .then((data) => { setOrders(Array.isArray(data) ? data : []); })
+      .then((data) => {
+        const arr = Array.isArray(data) ? data : [];
+        ordersRef.current = arr;
+        setOrders(arr);
+      })
       .catch(() => setError("Buyurtmalarni yuklashda xato"))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const { WebApp } = window.Telegram || {};
+    const userId = WebApp?.initDataUnsafe?.user?.id || '123456789';
+    const es = new EventSource(`/api/orders/events?tid=${userId}`);
+
+    es.onmessage = (e) => {
+      try {
+        const event = JSON.parse(e.data);
+        if (event.type === 'status_update' && Array.isArray(event.orders)) {
+          const changedMap = new Map(event.orders.map((o) => [o.id, o.status]));
+          setOrders((prev) => {
+            const next = prev.map((o) =>
+              changedMap.has(o.id) ? { ...o, status: changedMap.get(o.id) } : o,
+            );
+            ordersRef.current = next;
+            return next;
+          });
+          flash([...changedMap.keys()]);
+        }
+      } catch {}
+    };
+
+    es.onerror = () => es.close();
+    return () => es.close();
   }, []);
 
   return (
@@ -552,7 +595,14 @@ function OrdersView({ onBack }) {
       ) : (
         <ul className="space-y-2">
           {orders.map((order) => (
-            <li key={order.id} className="rounded-xl border border-theme bg-theme-card p-3.5 shadow-theme-sm">
+            <li
+              key={order.id}
+              className={`rounded-xl border p-3.5 shadow-theme-sm transition-colors duration-700 ${
+                flashIds.has(order.id)
+                  ? 'border-emerald-400 bg-emerald-50'
+                  : 'border-theme bg-theme-card'
+              }`}
+            >
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-[14px] font-bold text-theme">#{order.code}</p>
