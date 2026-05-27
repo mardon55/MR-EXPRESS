@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext';
 import { useTelegram } from '../hooks/useTelegram';
 import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import ProductGrid from '../components/ProductGrid';
+import { resolveUrl } from '../utils/resolveUrl';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -159,7 +160,7 @@ function SubCategoryCard({ sub, index, onOpen }) {
       >
         {sub.image_url ? (
           <img
-            src={sub.image_url}
+            src={resolveUrl(sub.image_url)}
             alt={sub.name}
             className="h-full w-full object-cover"
             loading="lazy"

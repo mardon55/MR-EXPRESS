@@ -2,15 +2,14 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTelegram } from '../hooks/useTelegram';
 import { api } from '../api';
+import { resolveUrl } from '../utils/resolveUrl';
 
 const RING_UNSEEN = 'bg-gradient-to-tr from-[#00F0FF] via-[#3B82F6] to-[#8B5CF6] p-[2.5px]';
 const RING_SEEN   = 'bg-neutral-300/80 p-[2px]';
 const IMAGE_DURATION = 5000;
 
 function mediaUrl(url) {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  return url;
+  return resolveUrl(url);
 }
 
 // ---------- Bitta hikoya avatari ----------

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, CreditCard, Copy, Check } from 'lucide-react';
 import WebApp from '@twa-dev/sdk';
 import { api, formatPrice } from '../api';
+import { resolveUrl } from '../utils/resolveUrl';
 import { useApp } from '../context/AppContext';
 import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import { useTelegram } from '../hooks/useTelegram';
@@ -442,7 +443,7 @@ export default function Cart() {
             return (
             <div key={item.cart_id} className="glass flex gap-3.5 rounded-squircle p-3.5 shadow-glass">
               {item.product.image_url ? (
-                <img src={item.product.image_url} alt="" className="h-[76px] w-[76px] shrink-0 rounded-squircle object-cover" />
+                <img src={resolveUrl(item.product.image_url)} alt="" className="h-[76px] w-[76px] shrink-0 rounded-squircle object-cover" />
               ) : (
                 <div className="flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-squircle bg-neutral-100 text-2xl">📦</div>
               )}

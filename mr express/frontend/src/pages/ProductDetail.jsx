@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Minus, Plus, Star, ImagePlus, X } from 'lucide-react';
 import { api, formatPrice } from '../api';
+import { resolveUrl } from '../utils/resolveUrl';
 import { useApp } from '../context/AppContext';
 import { useTelegram } from '../hooks/useTelegram';
 import { IconChevronLeft, IconHeartFilled } from '../components/icons/TabIcons';
@@ -401,7 +402,7 @@ export default function ProductDetail() {
   return (
     <div className="flex h-full flex-col overflow-y-auto overflow-x-hidden bg-theme-bg">
       <div className="relative w-full shrink-0">
-        <img src={product.image_url} alt={product.name} className="h-80 w-full object-cover" />
+        <img src={resolveUrl(product.image_url)} alt={product.name} className="h-80 w-full object-cover" />
         <div className="pointer-events-none absolute inset-x-0 top-3 flex items-center justify-between px-3">
           <button
             type="button"

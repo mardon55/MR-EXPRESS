@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { resolveUrl } from '../../utils/resolveUrl';
 import { Flame, Moon, ShoppingCart, Sparkles, Sun, Timer } from 'lucide-react';
 import { api } from '../../api';
 import { useTelegram } from '../../hooks/useTelegram';
@@ -142,7 +143,7 @@ function NightProductCard({ mahsulot, faol, onBuy, buyingId }) {
       )}
       <div className="flex gap-3">
         {mahsulot.image_url ? (
-          <img src={mahsulot.image_url} alt=""
+          <img src={resolveUrl(mahsulot.image_url)} alt=""
             className="h-[72px] w-[72px] shrink-0 rounded-xl object-cover ring-1 ring-[#2A2F45]" />
         ) : (
           <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-xl bg-[#1E2230] ring-1 ring-[#2A2F45]">

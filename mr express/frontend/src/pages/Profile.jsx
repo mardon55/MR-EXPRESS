@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { resolveUrl } from '../utils/resolveUrl';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -89,7 +90,7 @@ function ActiveGroupCard({ item, onJoin, onLeave, joiningId }) {
       <div className="flex gap-2.5">
         {item.image ? (
           <img
-            src={item.image}
+            src={resolveUrl(item.image)}
             alt=""
             className="h-[52px] w-[52px] shrink-0 rounded-lg object-cover"
           />
@@ -201,7 +202,7 @@ function CompletedGroupCard({ item }) {
     <article className="rounded-xl border border-emerald-500/25 bg-theme-card p-2.5 shadow-theme-sm">
       <div className="flex gap-2.5">
         <img
-          src={item.image}
+          src={resolveUrl(item.image)}
           alt=""
           className="h-[52px] w-[52px] shrink-0 rounded-lg object-cover ring-1 ring-emerald-500/20"
         />

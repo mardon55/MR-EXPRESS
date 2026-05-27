@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { resolveUrl } from '../utils/resolveUrl';
 import { formatPrice } from '../api';
 import { useApp } from '../context/AppContext';
 import { useTelegram } from '../hooks/useTelegram';
@@ -32,7 +33,7 @@ export default function ProductCard({ product, onAddCart }) {
     >
       <div className="relative aspect-square overflow-hidden rounded-t-squircle bg-white/20">
         <img
-          src={product.image_url}
+          src={resolveUrl(product.image_url)}
           alt={product.name}
           className="h-full w-full object-cover transition-fluid duration-500 hover:scale-[1.03]"
           loading="lazy"

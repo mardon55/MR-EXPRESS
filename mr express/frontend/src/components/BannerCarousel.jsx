@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { resolveUrl } from '../utils/resolveUrl';
 
 export default function BannerCarousel({ banners }) {
   const [active, setActive] = useState(0);
@@ -75,7 +76,7 @@ export default function BannerCarousel({ banners }) {
         {banners.map((b) => (
           <div key={b.id} className="relative min-w-full aspect-[2.15/1]">
             <img
-              src={b.image_url}
+              src={resolveUrl(b.image_url)}
               alt={b.title}
               className="h-full w-full object-cover"
               draggable={false}

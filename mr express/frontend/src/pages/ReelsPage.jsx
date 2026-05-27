@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Clapperboard, Heart, ShoppingCart } from 'lucide-react';
 import { api } from '../api';
+import { resolveUrl } from '../utils/resolveUrl';
 import { useApp } from '../context/AppContext';
 import { useTelegram } from '../hooks/useTelegram';
 
 function mediaUrl(url) {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  return url.startsWith('/') ? url : `/${url}`;
+  return resolveUrl(url);
 }
 
 function ReelSlide({ item, isMuted, onToggleMute, onAddToCart, adding }) {
@@ -74,7 +73,7 @@ function ReelSlide({ item, isMuted, onToggleMute, onAddToCart, adding }) {
         playsInline
         muted={isMuted}
         preload="metadata"
-        poster={product?.image_url || undefined}
+        poster={resolveUrl(product?.image_url)}
         onClick={onToggleMute}
       />
 
@@ -131,7 +130,7 @@ function ReelSlide({ item, isMuted, onToggleMute, onAddToCart, adding }) {
         <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-black/50 p-2 backdrop-blur-md">
           {product?.image_url ? (
             <img
-              src={product.image_url}
+              src={resolveUrl(product.image_url)}
               alt=""
               className="h-9 w-9 shrink-0 rounded-lg object-cover ring-1 ring-white/20"
             />
