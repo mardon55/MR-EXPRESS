@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     )
 
     bot_token: str = ""
-    webapp_url: str = "https://loud-pianos-repair.loca.lt"
+    webapp_url: str = "https://c4b3ed98-19d8-4ae3-a088-a22da62fb8c1-00-g4tsd5fc7ysl.pike.replit.dev"
     sqlite_path: str = "data/mrexpress.db"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
