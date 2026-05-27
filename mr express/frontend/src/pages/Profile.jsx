@@ -836,30 +836,100 @@ function InterfaceThemeView({ onBack, onSave, saving, hasUnsavedChanges }) {
   );
 }
 
-function HelpView({ onBack, tg }) {
-  const items = [
-    { q: 'Buyurtma qanday beriladi?', a: "Mahsulotni savatga qo'shing va buyurtma bering." },
-    { q: 'Yetkazib berish qancha vaqt?', a: "Toshkent bo'yicha 1–3 ish kuni." },
-    { q: "Qo'llab-quvvatlash", a: '@MR_EXPRESSBOT orqali yozing.' },
-  ];
-
+function HelpAccordion({ icon, title, children }) {
+  const [open, setOpen] = useState(false);
   return (
-    <SubPage title="Yordam markazi" onBack={onBack}>
-      <ul className="space-y-2">
-        {items.map((item) => (
-          <li key={item.q} className="rounded-xl bg-theme-card px-3.5 py-3 shadow-theme-sm">
-            <p className="text-[14px] font-semibold text-theme">{item.q}</p>
-            <p className="mt-1 text-xs leading-relaxed text-theme-muted">{item.a}</p>
-          </li>
-        ))}
-      </ul>
+    <div className="overflow-hidden rounded-xl border border-theme bg-theme-card shadow-theme-sm">
       <button
         type="button"
-        onClick={() => tg?.openTelegramLink?.('https://t.me/MR_EXPRESSBOT')}
-        className="press-fluid mt-4 w-full rounded-xl border border-theme py-2.5 text-sm font-semibold text-theme-accent"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-3.5 text-left"
       >
-        Chat orqali yozish
+        <div className="flex items-center gap-3">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-theme-icon text-theme-accent text-base">
+            {icon}
+          </span>
+          <span className="text-[14px] font-semibold text-theme">{title}</span>
+        </div>
+        <span
+          className={`text-theme-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        >
+          ▾
+        </span>
       </button>
+      {open && (
+        <div className="border-t border-theme px-4 py-3.5">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HelpView({ onBack, tg }) {
+  return (
+    <SubPage title="Yordam markazi" onBack={onBack}>
+      <div className="space-y-2">
+
+        {/* 1. Ilova haqida */}
+        <HelpAccordion icon="📱" title="Ilova haqida">
+          <div className="space-y-2.5 text-[13px] text-theme-muted leading-relaxed">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-theme">Ilova nomi</span>
+              <span>MR Express</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-theme">Versiya</span>
+              <span>1.0.0</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-theme">Platforma</span>
+              <span>Telegram Mini App</span>
+            </div>
+            <p className="mt-1 rounded-lg bg-theme-icon px-3 py-2.5 text-xs leading-relaxed">
+              MR Express — Xitoydan O&apos;zbekistonga sifatli tovarlarni qulay narxlarda yetkazib beruvchi platforma. Telegram orqali buyurtma bering, holatingizni kuzating.
+            </p>
+          </div>
+        </HelpAccordion>
+
+        {/* 2. Qo'llab-quvvatlash */}
+        <HelpAccordion icon="🎧" title="Qo'llab-quvvatlash">
+          <div className="space-y-3 text-[13px]">
+            <p className="leading-relaxed text-theme-muted">
+              Savol yoki muammo bo&apos;lsa — bizga Telegram orqali yozing. Ish vaqti: <span className="font-semibold text-theme">09:00 – 22:00</span> (dush–shan).
+            </p>
+            <div className="rounded-lg bg-theme-icon px-3 py-2.5">
+              <p className="text-xs text-theme-muted">Telegram kanal</p>
+              <p className="font-semibold text-theme">@MR_EXPRESSBOT</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => tg?.openTelegramLink?.('https://t.me/MR_EXPRESSBOT')}
+              className="press-fluid w-full rounded-xl border border-theme-accent py-2.5 text-[13px] font-semibold text-theme-accent"
+            >
+              Chat orqali yozish
+            </button>
+          </div>
+        </HelpAccordion>
+
+        {/* 3. Dasturchi haqida */}
+        <HelpAccordion icon="💻" title="Dasturchi haqida">
+          <div className="space-y-2.5 text-[13px] text-theme-muted leading-relaxed">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-theme">Texnologiya</span>
+              <span>React · FastAPI · Aiogram</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-theme">Ma&apos;lumotlar bazasi</span>
+              <span>SQLite</span>
+            </div>
+            <p className="mt-1 rounded-lg bg-theme-icon px-3 py-2.5 text-xs leading-relaxed">
+              Bu ilova zamonaviy texnologiyalar yordamida ishlab chiqilgan. Taklif va xatoliklar uchun qo&apos;llab-quvvatlash bo&apos;limiga murojaat qiling.
+            </p>
+          </div>
+        </HelpAccordion>
+
+      </div>
     </SubPage>
   );
 }
