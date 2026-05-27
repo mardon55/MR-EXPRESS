@@ -12,6 +12,10 @@ class PaymentSettingsUpdate(BaseModel):
     bank_name: str = ""
 
 
+class CargoRateUpdate(BaseModel):
+    rate_per_kg: int = 12000
+
+
 @router.get("/payment")
 async def get_payment_settings():
     await db.execute(
@@ -51,3 +55,35 @@ async def update_payment_settings(body: PaymentSettingsUpdate):
         body.bank_name.strip(),
     )
     return {"ok": True, **body.model_dump()}
+
+
+# ── Kargo narxi ────────────────────────────────────────────────────────────────
+
+async def _ensure_cargo_table():
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS cargo_settings (
+            id INTEGER PRIMARY KEY DEFAULT 1,
+            rate_per_kg INTEGER DEFAULT 12000,
+            updated_at TEXT DEFAULT (datetime('now'))
+        )
+        """
+    )
+    await db.execute("INSERT OR IGNORE INTO cargo_settings (id) VALUES (1)")
+
+
+@router.get("/cargo-rate")
+async def get_cargo_rate():
+    await _ensure_cargo_table()
+    row = await db.fetchrow("SELECT rate_per_kg FROM cargo_settings WHERE id = 1")
+    return {"rate_per_kg": row["rate_per_kg"] if row else 12000}
+
+
+@router.put("/cargo-rate")
+async def update_cargo_rate(body: CargoRateUpdate):
+    await _ensure_cargo_table()
+    await db.execute(
+        "UPDATE cargo_settings SET rate_per_kg = ?, updated_at = datetime('now') WHERE id = 1",
+        body.rate_per_kg,
+    )
+    return {"ok": True, "rate_per_kg": body.rate_per_kg}

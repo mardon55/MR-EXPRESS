@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { CreditCardIcon } from '@heroicons/react/24/outline'
+import { CreditCardIcon, TruckIcon } from '@heroicons/react/24/outline'
 import { motion } from 'framer-motion'
 
 const API = '/api/v1/settings/payment'
+const CARGO_API = '/api/v1/settings/cargo-rate'
 
 function formatCardDisplay(num: string) {
   const digits = num.replace(/\D/g, '')
@@ -17,15 +18,20 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  const [cargoRate, setCargoRate] = useState('')
+  const [cargoSaving, setCargoSaving] = useState(false)
+  const [cargoSaved, setCargoSaved] = useState(false)
+
   useEffect(() => {
-    fetch(API)
-      .then((r) => r.json())
-      .then((d) => {
-        setCardNumber(d.card_number || '')
-        setCardHolder(d.card_holder || '')
-        setBankName(d.bank_name || '')
-      })
-      .finally(() => setLoading(false))
+    Promise.all([
+      fetch(API).then((r) => r.json()),
+      fetch(CARGO_API).then((r) => r.json()),
+    ]).then(([payment, cargo]) => {
+      setCardNumber(payment.card_number || '')
+      setCardHolder(payment.card_holder || '')
+      setBankName(payment.bank_name || '')
+      setCargoRate(String(cargo.rate_per_kg ?? 12000))
+    }).finally(() => setLoading(false))
   }, [])
 
   const handleSave = async () => {
@@ -43,6 +49,21 @@ export function SettingsPage() {
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
+  }
+
+  const handleCargoSave = async () => {
+    const rate = parseInt(cargoRate.replace(/\D/g, ''), 10)
+    if (!rate || rate <= 0) return
+    setCargoSaving(true)
+    setCargoSaved(false)
+    await fetch(CARGO_API, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rate_per_kg: rate }),
+    })
+    setCargoSaving(false)
+    setCargoSaved(true)
+    setTimeout(() => setCargoSaved(false), 3000)
   }
 
   const displayNum = formatCardDisplay(cardNumber) || '•••• •••• •••• ••••'
@@ -145,6 +166,46 @@ export function SettingsPage() {
       <p className="text-center text-xs text-ink-400 dark:text-ink-500">
         Bu karta ma'lumotlari mijozlarga checkout jarayonida ko'rsatiladi
       </p>
+
+      {/* Kargo narxi */}
+      <div className="frosted-glass rounded-3xl p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500/10">
+            <TruckIcon className="h-5 w-5 text-brand-500" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-ink-900 dark:text-white">Kargo narxi</h2>
+            <p className="text-xs text-ink-500 dark:text-ink-400">1 kg uchun so'm hisobida</p>
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-400">
+            1 kg narxi (so'm)
+          </label>
+          <input
+            type="number"
+            min="1"
+            value={cargoRate}
+            onChange={(e) => setCargoRate(e.target.value)}
+            placeholder="Masalan: 12000"
+            className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-[15px] text-ink-900 outline-none placeholder:text-ink-400 focus:ring-2 focus:ring-brand-500/30 dark:text-white"
+          />
+          {cargoRate && parseInt(cargoRate) > 0 && (
+            <p className="mt-1.5 text-xs text-ink-400 dark:text-ink-500">
+              Misol: 2.5 kg → {(parseFloat(cargoRate) * 2.5).toLocaleString('uz-UZ')} so'm
+            </p>
+          )}
+        </div>
+
+        <button
+          onClick={handleCargoSave}
+          disabled={cargoSaving}
+          className="w-full rounded-xl bg-brand-500 py-3.5 text-[15px] font-semibold text-white shadow-lg transition hover:bg-brand-600 disabled:opacity-60"
+        >
+          {cargoSaving ? 'Saqlanmoqda...' : cargoSaved ? '✅ Saqlandi!' : 'Kargo narxini saqlash'}
+        </button>
+      </div>
     </motion.div>
   )
 }

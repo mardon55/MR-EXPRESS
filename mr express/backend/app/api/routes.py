@@ -785,6 +785,23 @@ async def mark_delivered(
 # --- HIKOYALAR (STORIES) TIZIMI ENDPOINTLARI ---
 # =====================================================================
 
+@router.get("/settings/cargo-rate")
+async def get_cargo_rate():
+    """Kargo narxini qaytaradi (admin belgilaydi)."""
+    await execute(
+        """
+        CREATE TABLE IF NOT EXISTS cargo_settings (
+            id INTEGER PRIMARY KEY DEFAULT 1,
+            rate_per_kg INTEGER DEFAULT 12000,
+            updated_at TEXT DEFAULT (datetime('now'))
+        )
+        """
+    )
+    await execute("INSERT OR IGNORE INTO cargo_settings (id) VALUES (1)")
+    row = await fetchrow("SELECT rate_per_kg FROM cargo_settings WHERE id = 1")
+    return {"rate_per_kg": row["rate_per_kg"] if row else 12000}
+
+
 @router.get("/payment-info")
 async def get_payment_info():
     """Admin tomonidan kiritilgan to'lov karta ma'lumotlari."""

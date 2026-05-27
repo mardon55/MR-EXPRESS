@@ -665,35 +665,52 @@ function OrdersView({ onBack }) {
 
 function CargoCalcView({ onBack }) {
   const [weight, setWeight] = useState('');
-  const ratePerKg = 12000;
+  const [ratePerKg, setRatePerKg] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/settings/cargo-rate')
+      .then((r) => r.json())
+      .then((d) => setRatePerKg(d.rate_per_kg ?? 12000))
+      .catch(() => setRatePerKg(12000));
+  }, []);
+
   const total = useMemo(() => {
+    if (!ratePerKg) return null;
     const w = parseFloat(weight.replace(',', '.'));
     if (!w || w <= 0) return null;
     return Math.round(w * ratePerKg);
-  }, [weight]);
+  }, [weight, ratePerKg]);
 
   return (
     <SubPage title="Kargo hisoblagich" onBack={onBack}>
-      <p className="mb-3 text-xs text-theme-muted">
-        Og&apos;irlik (kg) × {ratePerKg.toLocaleString('uz-UZ')} so&apos;m/kg
-      </p>
-      <input
-        type="number"
-        inputMode="decimal"
-        min="0"
-        step="0.1"
-        value={weight}
-        onChange={(e) => setWeight(e.target.value)}
-        placeholder="Masalan: 2.5"
-        className="mb-3 w-full rounded-xl border border-theme bg-theme-card px-3.5 py-2.5 text-[15px] text-theme outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
-      />
-      {total != null && (
-        <div className="rounded-xl bg-theme-icon px-4 py-4 text-center">
-          <p className="text-xs font-medium text-theme-muted">Taxminiy narx</p>
-          <p className="mt-1 text-2xl font-bold text-theme-accent">
-            {total.toLocaleString('uz-UZ')} so&apos;m
-          </p>
+      {ratePerKg == null ? (
+        <div className="flex justify-center py-6">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-theme-accent border-t-transparent" />
         </div>
+      ) : (
+        <>
+          <p className="mb-3 text-xs text-theme-muted">
+            Og&apos;irlik (kg) × {ratePerKg.toLocaleString('uz-UZ')} so&apos;m/kg
+          </p>
+          <input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="0.1"
+            value={weight}
+            onChange={(e) => setWeight(e.target.value)}
+            placeholder="Masalan: 2.5"
+            className="mb-3 w-full rounded-xl border border-theme bg-theme-card px-3.5 py-2.5 text-[15px] text-theme outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
+          />
+          {total != null && (
+            <div className="rounded-xl bg-theme-icon px-4 py-4 text-center">
+              <p className="text-xs font-medium text-theme-muted">Taxminiy narx</p>
+              <p className="mt-1 text-2xl font-bold text-theme-accent">
+                {total.toLocaleString('uz-UZ')} so&apos;m
+              </p>
+            </div>
+          )}
+        </>
       )}
     </SubPage>
   );
