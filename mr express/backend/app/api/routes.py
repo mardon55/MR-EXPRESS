@@ -785,6 +785,41 @@ async def mark_delivered(
 # --- HIKOYALAR (STORIES) TIZIMI ENDPOINTLARI ---
 # =====================================================================
 
+@router.get("/night-market")
+async def get_night_market():
+    """Tungi bozor mahsulotlarini qaytaradi."""
+    await execute(
+        """
+        CREATE TABLE IF NOT EXISTS night_market_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            image_url TEXT DEFAULT '',
+            day_price INTEGER DEFAULT 0,
+            night_discount_percent INTEGER DEFAULT 30,
+            total_stock INTEGER DEFAULT 10,
+            sold_count INTEGER DEFAULT 0,
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+        """
+    )
+    rows = await fetch(
+        "SELECT * FROM night_market_items WHERE is_active = 1 ORDER BY created_at DESC"
+    )
+    return [
+        {
+            "id": r["id"],
+            "name": r["name"],
+            "image_url": r["image_url"] or "",
+            "day_price": r["day_price"],
+            "night_discount_percent": r["night_discount_percent"],
+            "total_stock": r["total_stock"],
+            "sold_count": r["sold_count"],
+        }
+        for r in rows
+    ]
+
+
 @router.get("/settings/support")
 async def get_support_settings():
     """Qo'llab-quvvatlash sozlamalarini qaytaradi (admin belgilaydi)."""

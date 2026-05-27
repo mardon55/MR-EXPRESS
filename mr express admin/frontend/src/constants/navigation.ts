@@ -11,6 +11,7 @@ import {
   TicketIcon,
   ChatBubbleLeftRightIcon,
   CreditCardIcon,
+  MoonIcon,
 } from '@heroicons/react/24/outline'
 import {
   Squares2X2Icon as Squares2X2Solid,
@@ -24,6 +25,7 @@ import {
   TicketIcon as TicketSolid,
   ChatBubbleLeftRightIcon as ChatBubbleSolid,
   CreditCardIcon as CreditCardSolid,
+  MoonIcon as MoonSolid,
 } from '@heroicons/react/24/solid'
 
 export type IconComponent = ComponentType<SVGProps<SVGSVGElement>>
@@ -117,6 +119,14 @@ export const NAVIGATION: NavItem[] = [
     path: '/reviews',
     icon: ChatBubbleLeftRightIcon,
     iconActive: ChatBubbleSolid,
+  },
+  {
+    id: 'night-market',
+    label: 'Tungi bozor',
+    description: 'Flash sale mahsulotlari (22:00–02:00)',
+    path: '/night-market',
+    icon: MoonIcon,
+    iconActive: MoonSolid,
   },
   {
     id: 'settings',

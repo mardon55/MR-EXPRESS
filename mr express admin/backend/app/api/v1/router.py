@@ -6,6 +6,7 @@ from app.api.v1.endpoints import (
     dashboard,
     discounts,
     group_buys,
+    night_market,
     orders,
     promocodes,
     reels,
@@ -26,3 +27,4 @@ api_router.include_router(group_buys.router, prefix="/group-buys", tags=["group-
 api_router.include_router(promocodes.router, prefix="/promocodes", tags=["promocodes"])
 api_router.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
 api_router.include_router(settings.router, prefix="/settings", tags=["settings"])
+api_router.include_router(night_market.router, prefix="/night-market", tags=["night-market"])
