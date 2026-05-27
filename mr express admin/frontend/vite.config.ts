@@ -15,12 +15,16 @@ export default defineConfig({
     host: '0.0.0.0',
     allowedHosts: true,
     proxy: {
-      '/api': {
+      '/api/v1': {
         target: 'http://localhost:8008',
         changeOrigin: true,
       },
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
       '/uploads': {
-        target: 'http://localhost:8008',
+        target: 'http://localhost:8000',
         changeOrigin: true,
       },
       '/shop': {
