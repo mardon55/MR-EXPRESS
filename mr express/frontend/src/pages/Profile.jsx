@@ -526,9 +526,9 @@ function formatOrderDate(dt) {
 }
 
 const ORDER_TABS = [
-  { key: 'confirmed', label: 'Yangi' },
-  { key: 'active',    label: 'Jarayonda' },
-  { key: 'arrived',   label: 'Yuborilgan' },
+  { key: 'confirmed', label: 'Tasdiqlandi' },
+  { key: 'active',    label: 'Aktiv' },
+  { key: 'arrived',   label: 'Yetib Keldi' },
   { key: 'delivered', label: 'Yetkazildi' },
 ];
 
