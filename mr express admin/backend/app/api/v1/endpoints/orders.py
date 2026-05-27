@@ -130,6 +130,37 @@ async def list_orders(
     return {"items": items, "total": total or 0, "page": page, "limit": limit}
 
 
+async def _award_delivery_promos_admin(order_id: int, user_id: int) -> None:
+    """Yetkazilganda 2 ta promokod beradi va bildirishnoma yuboradi."""
+    from datetime import datetime, timedelta
+    valid_until = (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%d")
+    promos = [
+        (f"MR{order_id:04d}CHEGIRMA10", "Keyingi buyurtmaga 10% chegirma", "10%", 10, 200_000),
+        (f"MR{order_id:04d}KARGO5",     "Kargo uchun 5% chegirma",          "5%",  5, 150_000),
+    ]
+    for code, title, discount_label, discount_percent, min_order in promos:
+        try:
+            await db.execute(
+                """
+                INSERT OR IGNORE INTO promo_codes
+                    (user_id, order_id, code, title, discount_label, discount_percent, min_order, valid_until)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                user_id, order_id, code, title, discount_label, discount_percent, min_order, valid_until,
+            )
+        except Exception:
+            pass
+    try:
+        await db.execute(
+            "INSERT OR IGNORE INTO notifications (user_id, title, message) VALUES (?, ?, ?)",
+            user_id,
+            f"🚚 Buyurtma MR-{order_id:04d} yetkazildi!",
+            "Buyurtmangiz yetkazib berildi! Sizga 2 ta maxsus promokod berildi — 'Promokodlar' bo'limini tekshiring 🎟️",
+        )
+    except Exception:
+        pass
+
+
 @router.patch("/{order_id}")
 async def patch_order(order_id: int, body: OrderPatch):
     if body.status is None:
@@ -139,12 +170,18 @@ async def patch_order(order_id: int, body: OrderPatch):
     if status not in ORDER_STATUSES:
         raise HTTPException(400, f"Noto'g'ri status: {body.status}")
 
-    row = await db.fetchrow("SELECT id FROM orders WHERE id = ?", order_id)
+    row = await db.fetchrow("SELECT id, user_id, status FROM orders WHERE id = ?", order_id)
     if not row:
         raise HTTPException(404, "Buyurtma topilmadi")
 
+    old_status = normalize_status(row.get("status") or "")
+
     await db.execute("UPDATE orders SET status = ? WHERE id = ?", status, order_id)
     await _broadcast({"type": "status_update", "order_id": order_id, "status": status})
+
+    if status == "delivered" and old_status != "delivered":
+        await _award_delivery_promos_admin(order_id, row["user_id"])
+
     return {"id": order_id, "status": status}
 
 

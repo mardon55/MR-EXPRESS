@@ -124,6 +124,9 @@ export const api = {
     });
   },
 
+  // Promokodlar
+  promoCodes: () => request('/api/promo-codes'),
+
   // Guruhli xaridlar (Group Buy)
   groupBuys: () => request('/api/group-buys'),
   joinGroupBuy: (id) => request(`/api/group-buys/${id}/join`, { method: 'POST' }),

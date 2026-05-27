@@ -99,6 +99,20 @@ async def _migrate(db: aiosqlite.Connection) -> None:
             joined_at TEXT DEFAULT (datetime('now'))
         );
 
+        CREATE TABLE IF NOT EXISTS promo_codes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            order_id INTEGER REFERENCES orders(id),
+            code TEXT NOT NULL UNIQUE,
+            title TEXT NOT NULL,
+            discount_label TEXT NOT NULL,
+            discount_percent INTEGER DEFAULT 0,
+            min_order INTEGER DEFAULT 0,
+            valid_until TEXT NOT NULL,
+            status TEXT DEFAULT 'active',
+            created_at TEXT DEFAULT (datetime('now'))
+        );
+
         CREATE TABLE IF NOT EXISTS promocodes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             code TEXT UNIQUE NOT NULL,

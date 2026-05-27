@@ -231,39 +231,6 @@ function CompletedGroupCard({ item }) {
   );
 }
 
-/** Xariddan keyin beriladigan promokodlar — faqat buyurtma bo'lganda ko'rinadi */
-const PROMOS_AFTER_PURCHASE = [
-  {
-    id: 'promo-1',
-    code: 'MRXITOY10',
-    title: 'Keyingi buyurtmaga 10% chegirma',
-    discountLabel: '10%',
-    minOrder: 200_000,
-    validUntil: '2026-08-23',
-    orderRef: 'Buyurtma #1042',
-    status: 'active',
-  },
-  {
-    id: 'promo-2',
-    code: 'MRKARGO5',
-    title: 'Kargo uchun 5% chegirma',
-    discountLabel: '5%',
-    minOrder: 150_000,
-    validUntil: '2026-07-15',
-    orderRef: 'Buyurtma #1042',
-    status: 'active',
-  },
-  {
-    id: 'promo-3',
-    code: 'MRLOYAL15',
-    title: 'VIP mijoz — 15% chegirma',
-    discountLabel: '15%',
-    minOrder: 500_000,
-    validUntil: '2026-06-01',
-    orderRef: 'Buyurtma #0987',
-    status: 'used',
-  },
-];
 
 /** Bitta promokod kartochkasi */
 function PromoCodeCard({ promo, copiedId, onCopy }) {
@@ -333,12 +300,29 @@ function PromoCodeCard({ promo, copiedId, onCopy }) {
   );
 }
 
-/** Promokodlar ichki sahifasi — xarid qilmagan foydalanuvchiga bo'sh holat */
-function PromoCodesView({ onBack, ordersCount, tg }) {
+/** Promokodlar ichki sahifasi — real API dan ma'lumot oladi */
+function PromoCodesView({ onBack, tg, onCountChange }) {
+  const [promos, setPromos] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
-  const hasPurchased = (ordersCount ?? 0) > 0;
-  const activePromos = PROMOS_AFTER_PURCHASE.filter((p) => p.status === 'active');
-  const promosToShow = hasPurchased ? PROMOS_AFTER_PURCHASE : [];
+
+  const fetchPromos = useCallback(async () => {
+    try {
+      const data = await api.promoCodes();
+      setPromos(data || []);
+      onCountChange?.((data || []).filter((p) => p.status === 'active').length);
+    } catch {
+      /* silent */
+    } finally {
+      setLoading(false);
+    }
+  }, [onCountChange]);
+
+  useEffect(() => { fetchPromos(); }, [fetchPromos]);
+  useAutoRefresh(fetchPromos, 30_000);
+
+  const activePromos = promos.filter((p) => p.status === 'active');
+  const hasPromos = promos.length > 0;
 
   const handleCopy = async (promo) => {
     try {
@@ -354,32 +338,39 @@ function PromoCodesView({ onBack, ordersCount, tg }) {
   return (
     <SubPage title="Promokodlar" onBack={onBack}>
       <p className="mb-3 text-xs leading-relaxed text-theme-muted">
-        Promokodlar faqat muvaffaqiyatli xarid qilgandan so&apos;ng avtomatik beriladi.
+        Buyurtmangiz yetkazilgandan so&apos;ng 2 ta maxsus promokod avtomatik beriladi. Muddati 3 kun.
       </p>
 
-      {!hasPurchased ? (
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-theme-accent border-t-transparent" />
+        </div>
+      )}
+
+      {!loading && !hasPromos && (
         <div className="rounded-xl border border-theme bg-theme-card px-4 py-8 text-center shadow-theme-sm">
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-theme-icon">
             <ShoppingBag className="h-6 w-6 text-theme-muted" strokeWidth={2} />
           </span>
           <p className="mt-3 text-[15px] font-semibold text-theme">Hali promokod yo&apos;q</p>
           <p className="mt-2 text-xs leading-relaxed text-theme-muted">
-            Birinchi buyurtmangizni yakunlang — keyingi xaridlaringiz uchun maxsus
-            promokodlar shu yerda paydo bo&apos;ladi.
+            Birinchi buyurtmangiz yetkazilgach, 2 ta maxsus promokod avtomatik beriladi.
           </p>
         </div>
-      ) : (
+      )}
+
+      {!loading && hasPromos && (
         <>
           <div className="mb-3 rounded-xl bg-theme-icon px-3 py-2.5">
             <p className="text-[11px] font-medium text-theme-muted">
               Sizda {activePromos.length} ta faol promokod
             </p>
             <p className="mt-0.5 text-xs text-theme">
-              {ordersCount} ta buyurtma asosida berilgan
+              Jami {promos.length} ta promokod berilgan
             </p>
           </div>
           <ul className="space-y-2">
-            {promosToShow.map((promo) => (
+            {promos.map((promo) => (
               <PromoCodeCard
                 key={promo.id}
                 promo={promo}
@@ -1096,6 +1087,7 @@ export default function Profile() {
   const [section, setSection] = useState(null);
   const [savingTheme, setSavingTheme] = useState(false);
   const [groupBuyCount, setGroupBuyCount] = useState(0);
+  const [promoCount, setPromoCount] = useState(0);
 
   // Ichki bo'lim ochiq bo'lganda Telegram back button uni yopsin (navigate(-1) emas)
   useEffect(() => {
@@ -1173,8 +1165,8 @@ export default function Profile() {
     return (
       <PromoCodesView
         onBack={() => setSection(null)}
-        ordersCount={profile?.orders_count ?? 0}
         tg={tg}
+        onCountChange={setPromoCount}
       />
     );
   }
@@ -1230,11 +1222,7 @@ export default function Profile() {
           <MenuRow
             icon={IconPromo}
             label="Promokodlar"
-            badge={
-              (profile?.orders_count ?? 0) > 0
-                ? PROMOS_AFTER_PURCHASE.filter((p) => p.status === 'active').length
-                : undefined
-            }
+            badge={promoCount || undefined}
             onClick={() => setSection('promo')}
           />
         </nav>

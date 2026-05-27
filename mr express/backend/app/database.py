@@ -57,6 +57,25 @@ async def _migrate_schema(db: aiosqlite.Connection):
         "INSERT OR IGNORE INTO payment_settings (id) VALUES (1)"
     )
 
+    # promo_codes jadvali
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS promo_codes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            order_id INTEGER REFERENCES orders(id),
+            code TEXT NOT NULL UNIQUE,
+            title TEXT NOT NULL,
+            discount_label TEXT NOT NULL,
+            discount_percent INTEGER DEFAULT 0,
+            min_order INTEGER DEFAULT 0,
+            valid_until TEXT NOT NULL,
+            status TEXT DEFAULT 'active',
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+        """
+    )
+
     # reviews jadvali mavjudligini tekshirish (eski bazalar uchun)
     cur = await db.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='reviews'"

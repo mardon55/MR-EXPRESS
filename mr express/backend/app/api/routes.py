@@ -735,6 +735,84 @@ class PromoApply(BaseModel):
     code: str
 
 
+async def _award_delivery_promos(order_id: int, user_id: int) -> None:
+    """Buyurtma yetkazilganda 2 ta promokod avtomatik beradi (3 kunlik amal qilish muddati)."""
+    from datetime import timedelta
+    valid_until = (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%d")
+    promos = [
+        (
+            f"MR{order_id:04d}CHEGIRMA10",
+            "Keyingi buyurtmaga 10% chegirma",
+            "10%",
+            10,
+            200_000,
+        ),
+        (
+            f"MR{order_id:04d}KARGO5",
+            "Kargo uchun 5% chegirma",
+            "5%",
+            5,
+            150_000,
+        ),
+    ]
+    for code, title, discount_label, discount_percent, min_order in promos:
+        try:
+            await execute(
+                """
+                INSERT OR IGNORE INTO promo_codes
+                    (user_id, order_id, code, title, discount_label, discount_percent, min_order, valid_until)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                user_id,
+                order_id,
+                code,
+                title,
+                discount_label,
+                discount_percent,
+                min_order,
+                valid_until,
+            )
+        except Exception:
+            pass
+
+
+@router.get("/promo-codes")
+async def list_promo_codes(
+    x_telegram_user_id: str = Header(..., alias="X-Telegram-User-Id"),
+):
+    """Foydalanuvchining barcha promokodlarini qaytaradi."""
+    tid = _user_id_header(x_telegram_user_id)
+    uid = await _db_user_id(tid)
+
+    await execute(
+        """
+        UPDATE promo_codes SET status = 'expired'
+        WHERE user_id = ? AND status = 'active' AND DATE(valid_until) < DATE('now')
+        """,
+        uid,
+    )
+
+    rows = await fetch(
+        "SELECT * FROM promo_codes WHERE user_id = ? ORDER BY id DESC",
+        uid,
+    )
+    result = []
+    for r in rows:
+        result.append({
+            "id": r["id"],
+            "code": r["code"],
+            "title": r["title"],
+            "discountLabel": r["discount_label"],
+            "discountPercent": r["discount_percent"],
+            "minOrder": r["min_order"],
+            "validUntil": r["valid_until"],
+            "status": r["status"],
+            "orderRef": f"Buyurtma MR-{r['order_id']:04d}" if r.get("order_id") else "",
+            "createdAt": r.get("created_at", ""),
+        })
+    return result
+
+
 @router.post("/promo/apply")
 async def apply_promo_code(
     body: PromoApply,
@@ -764,23 +842,29 @@ async def mark_delivered(
     order_id: int,
     x_telegram_user_id: str = Header(..., alias="X-Telegram-User-Id"),
 ):
-    """Buyurtmani yetkazilgan deb belgilash (admin tomonidan chaqiriladi)"""
+    """Buyurtmani yetkazilgan deb belgilash — 2 ta promokod avtomatik beriladi."""
     order = await fetchrow("SELECT * FROM orders WHERE id = ?", order_id)
     if not order:
         raise HTTPException(404, "Buyurtma topilmadi")
+
+    already_delivered = (order.get("status") or "") == "Yetkazildi"
+
     await execute(
         "UPDATE orders SET status = ? WHERE id = ?",
         "Yetkazildi", order_id,
     )
-    await execute(
-        """
-        INSERT INTO notifications (user_id, title, message)
-        VALUES (?, ?, ?)
-        """,
-        order["user_id"],
-        f"🚚 Buyurtma #{order_id} yetkazildi",
-        "Buyurtmangiz muvaffaqiyatli yetkazib berildi. Xaridingiz uchun rahmat!",
-    )
+
+    if not already_delivered:
+        await _award_delivery_promos(order_id, order["user_id"])
+        await execute(
+            """
+            INSERT INTO notifications (user_id, title, message)
+            VALUES (?, ?, ?)
+            """,
+            order["user_id"],
+            f"🚚 Buyurtma MR-{order_id:04d} yetkazildi!",
+            "Buyurtmangiz yetkazib berildi! Sizga 2 ta maxsus promokod berildi — 'Promokodlar' bo'limini tekshiring 🎟️",
+        )
     return {"ok": True, "order_id": order_id, "status": "Yetkazildi"}
 
 
