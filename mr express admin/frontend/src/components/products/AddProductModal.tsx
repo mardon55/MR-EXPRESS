@@ -115,11 +115,44 @@ const CATEGORY_FIELDS: Record<number, CatField[]> = {
     { key: 'gender', label: 'Jinsi', type: 'select', options: ['Erkaklar', 'Ayollar', "Bolalar (O'g'il)", 'Bolalar (Qiz)'] },
     { key: 'season', label: 'Mavsum', type: 'select', options: ['Yozgi (Ochiq)', 'Kuzgi/Bahorgi', "Qishki (Mo'ynali/Mexli)"] },
   ],
+  // ── Uy Ro'zg'or parent (fallback) ──
   3: [
     { key: 'material', label: 'Material', type: 'text', placeholder: "Metall, Plastik, Yog'och..." },
-    { key: 'colors', label: 'Ranglar', type: 'multiselect', options: ['Qora', 'Oq', 'Kumush', 'Jigarrang', 'Yashil', 'Kulrang', 'Beige'] },
+    { key: 'colors', label: 'Ranglar', type: 'multiselect', options: ['Qora', 'Oq', 'Kumush', 'Jigarrang', 'Yashil', 'Kulrang', 'Bej'] },
     { key: 'brand', label: 'Brend', type: 'text', placeholder: 'Brend nomi...' },
     { key: 'dimensions', label: "O'lchamlari", type: 'text', placeholder: '30x40 sm, 1.5 m...' },
+  ],
+  // ── Oshxona jihozlari (26) ──
+  26: [
+    { key: 'type', label: 'Turi', type: 'select', options: ['Qozon', 'Tova (Skovoroda)', "Pichoqlar to'plami", 'Idish-tovoqlar', 'Choynak', 'Termos', 'Konteyner', 'Boshqa'] },
+    { key: 'material', label: 'Material', type: 'select', options: ['Alyuminiy', 'Granit qoplama', 'Teflon', "Zanglamaydigan po'lat (Nershavayka)", 'Shisha', 'Keramika', "Cho'yan (Chugun)"] },
+    { key: 'capacity', label: "Hajmi (Litr / Diametr)", type: 'multiselect', options: ['2L', '3L', '5L', '7L', '20 sm', '24 sm', '28 sm', '32 sm'] },
+    { key: 'set_size', label: "Idishlar soni (To'plamlar uchun)", type: 'select', options: ["6 kishilik", "12 kishilik", "18 bo'lakli", "24 bo'lakli", "Alohida"] },
+    { key: 'compatibility', label: 'Mosligi', type: 'multiselect', options: ['Gaz plita uchun', 'Induksion plita uchun', "Idish yuvish mashinasiga mos", 'Barcha plitalar uchun'] },
+  ],
+  // ── Maishiy texnika (27) ──
+  27: [
+    { key: 'type', label: 'Turi', type: 'select', options: ['Muzlatgich', 'Kir yuvish mashinasi', 'Mikrotolqinli pech (Mikrovolnovka)', 'Changyutgich', 'Blender', "Go'shtmaydalagich", 'Dazmol', 'Boshqa'] },
+    { key: 'brand', label: 'Brend', type: 'text', placeholder: 'Artel, Samsung, LG, Bosch, Avalon...' },
+    { key: 'power', label: 'Quvvati (W)', type: 'select', options: ['500W', '700W', '1000W', '1200W', '1500W', '2000W', '2500W'] },
+    { key: 'energy_class', label: 'Energiya samaradorligi', type: 'select', options: ['A', 'A+', 'A++', 'A+++', 'B', 'C'] },
+    { key: 'capacity', label: "Hajmi / Sig'imi", type: 'text', placeholder: '6 kg, 8 kg / 20L, 23L / 300L, 400L...' },
+    { key: 'warranty', label: 'Kafolat', type: 'select', options: ['Kafolatsiz', '6 oy', '1 yil', '2 yil', '3 yil'] },
+  ],
+  // ── Uy tekstili (28) ──
+  28: [
+    { key: 'type', label: 'Turi', type: 'select', options: ["Ko'rpa-to'shak komplekti", 'Sochiq (Polotense)', 'Parda', 'Gilam', 'Dasturxon', 'Yostiq', 'Plad (Pled)', 'Boshqa'] },
+    { key: 'size', label: "O'lchami", type: 'select', options: ["Bir kishilik (1-spalnyy)", "Ikki kishilik (2-spalnyy)", 'Evro (Euro)', 'Oilaviy (Semeynyy)', '100x150 sm', '150x200 sm', '200x300 sm'] },
+    { key: 'material', label: 'Material (Mato)', type: 'select', options: ['100% Paxta (Xlopok)', 'Satin', 'Poplin', 'Maxra (Baxrom)', 'Ipak', 'Mikrofibre', 'Aralash'] },
+    { key: 'pattern', label: 'Rang va naqsh', type: 'select', options: ['Bir rangli (Oddiy)', 'Gullik', 'Geometrik naqshli', 'Bolalarbop rasmli', 'Katak', 'Abstrak'] },
+  ],
+  // ── Mebel va interyer (29) ──
+  29: [
+    { key: 'type', label: 'Turi', type: 'select', options: ['Divan', 'Kreat', 'Shkaf', "Stol-stul to'plami", 'Oshxona mebeli', 'Oyna (Zerkalo)', 'Devor soati', 'Kartina / rasm', 'Boshqa'] },
+    { key: 'room', label: 'Xona turi', type: 'select', options: ['Mehmonxona (Zal)', 'Yotoqxona (Spalnya)', 'Oshxona', 'Doshxona (Prixojaya)', 'Bolalar xonasi', 'Hammom'] },
+    { key: 'material', label: 'Material', type: 'select', options: ["Tabiiy yog'och (Derevo)", 'MDF', 'DSP (Laminat)', 'Metall', 'Plastik', 'Shisha'] },
+    { key: 'upholstery', label: 'Mebel qoplamasi (Divan/Stullar)', type: 'select', options: ['Velvet', 'Koja (Charm)', 'Jakkard', 'Velur', 'Ekokoja', "Yo'q"] },
+    { key: 'dimensions', label: "O'lchamlari (Bo'y × Eni × Chuqurligi)", type: 'text', placeholder: '200 × 90 × 80 sm...' },
   ],
   4: [
     { key: 'brand', label: 'Brend', type: 'text', placeholder: "L'Oreal, MAC, Nivea, Chanel..." },
