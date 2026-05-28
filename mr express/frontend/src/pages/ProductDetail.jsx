@@ -351,6 +351,8 @@ export default function ProductDetail() {
   const { isFavorite, toggleFavorite, refreshCart } = useApp();
   const { haptic, tg } = useTelegram();
   const navigate = useNavigate();
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
 
   useEffect(() => {
     api.product(id).then((p) => {
@@ -404,13 +406,38 @@ export default function ProductDetail() {
     haptic('light');
   };
 
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null || images.length <= 1) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    if (Math.abs(dx) < Math.abs(dy) || Math.abs(dx) < 40) return;
+    if (dx < 0) {
+      setActiveImage((prev) => (prev + 1) % images.length);
+    } else {
+      setActiveImage((prev) => (prev - 1 + images.length) % images.length);
+    }
+    haptic('light');
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
+
   return (
     <div className="flex h-full flex-col overflow-y-auto overflow-x-hidden bg-theme-bg">
-      <div className="relative w-full shrink-0">
+      <div
+        className="relative w-full shrink-0"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <img
           src={resolveUrl(images[activeImage] || product.image_url)}
           alt={product.name}
-          className="h-80 w-full object-cover"
+          className="h-80 w-full object-cover select-none"
+          draggable={false}
         />
         {discount != null && (
           <span className="absolute left-3 bottom-3 rounded-xl bg-ios-red/90 px-2.5 py-1 text-[12px] font-bold text-white backdrop-blur-sm">
@@ -437,20 +464,36 @@ export default function ProductDetail() {
         </div>
 
         {images.length > 1 && (
-          <div className="absolute bottom-3 right-3 flex gap-1.5">
-            {images.map((img, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setActiveImage(i)}
-                className={`h-10 w-10 overflow-hidden rounded-xl border-2 transition-all ${
-                  activeImage === i ? 'border-ios-blue' : 'border-white/60'
-                }`}
-              >
-                <img src={resolveUrl(img)} alt="" className="h-full w-full object-cover" />
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => { setActiveImage(i); haptic('light'); }}
+                  className={`rounded-full transition-all duration-200 ${
+                    activeImage === i
+                      ? 'w-5 h-2 bg-white shadow'
+                      : 'w-2 h-2 bg-white/50'
+                  }`}
+                />
+              ))}
+            </div>
+            <div className="absolute bottom-3 right-3 flex gap-1.5">
+              {images.map((img, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => { setActiveImage(i); haptic('light'); }}
+                  className={`h-10 w-10 overflow-hidden rounded-xl border-2 transition-all ${
+                    activeImage === i ? 'border-ios-blue' : 'border-white/60'
+                  }`}
+                >
+                  <img src={resolveUrl(img)} alt="" className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
