@@ -200,11 +200,52 @@ const CATEGORY_FIELDS: Record<number, CatField[]> = {
     { key: 'safety', label: 'Zararsizligi', type: 'multiselect', options: ['9-Free', 'Gipoallergen (Allergiya bermaydigan)', 'Vegan', 'Organik'] },
     { key: 'brand', label: 'Brend', type: 'text', placeholder: 'Kodi, Uno, Oxxi, Beautix, Nail Apex...' },
   ],
+  // ── O'yinchoqlar parent (fallback) ──
   5: [
     { key: 'age_range', label: 'Yosh chegarasi', type: 'select', options: ['0-1 yosh', '1-3 yosh', '3-6 yosh', '6-12 yosh', '12+ yosh'] },
     { key: 'material', label: 'Material', type: 'text', placeholder: "Plastik, Yog'och, To'qima..." },
     { key: 'colors', label: 'Ranglar', type: 'multiselect', options: ["Ko'k", 'Qizil', 'Yashil', 'Sariq', 'Pushti', 'Rangli'] },
     { key: 'brand', label: 'Brend', type: 'text', placeholder: 'LEGO, Fisher-Price...' },
+  ],
+  // ── Rivojlantiruvchi o'yinchoqlar (35) ──
+  35: [
+    { key: 'type', label: 'Turi', type: 'select', options: ["Montessori o'yinchoqlari", 'Sorter', 'Bizibord', "Yog'ochli jumboqlar (Pazl)", "Musiqali o'yinchoqlar", 'Boshqa'] },
+    { key: 'age_range', label: 'Yosh toifasi', type: 'select', options: ['0-1 yosh', '1-2 yosh', '3-5 yosh', '6+ yosh'] },
+    { key: 'material', label: 'Material', type: 'select', options: ["Tabiiy yog'och", 'Ekologik plastik', 'Silliq rezina (Xavfsiz bo\'yoqli)', 'Aralash'] },
+    { key: 'development', label: 'Rivojlantirish yo\'nalishi', type: 'multiselect', options: ['Mayda motorika', 'Mantiqiy fikrlash', 'Rang va shakllarni tanish', "Nutqni o'stirish", 'Ijodkorlik'] },
+    { key: 'sound_light', label: 'Ovoz / Chiroq effekti', type: 'select', options: ['Bor (Musiqali)', "Yo'q", 'Chiroqli', 'Musiqali va chiroqli'] },
+  ],
+  // ── Konstruktorlar (36) ──
+  36: [
+    { key: 'type', label: 'Turi', type: 'select', options: ['Lego (Klassik)', 'Magnitli konstruktor', "Yog'ochli bloklar", 'Elektron konstruktor', 'Boshqa'] },
+    { key: 'age_range', label: 'Yosh toifasi', type: 'select', options: ['3+ (Katta bloklar)', '6+ (Mayda detallar)', '9+ (Murakkab/Elektron)', '12+ (Kattalar uchun)'] },
+    { key: 'pieces', label: 'Detallar soni', type: 'select', options: ["20 bo'lakli", "50-100 dona", "100-500 dona", "500+ dona (Yirik to'plamlar)"] },
+    { key: 'theme', label: 'Mavzusi', type: 'select', options: ['Shahar (City)', 'Mashinalar (Technic)', "Qizlar uchun (Friends)", "Qasrlar / Qo'rg'on", 'Robotlar', 'Hayvonlar', 'Kosmik'] },
+    { key: 'material', label: 'Material', type: 'select', options: ['ABS plastik (Zararsiz)', 'Magnit', "Yog'och", 'Metall'] },
+  ],
+  // ── Yumshoq o'yinchoqlar (37) ──
+  37: [
+    { key: 'type', label: 'Turi', type: 'select', options: ['Ayiqchalar (Mishka)', 'Multfilm qahramonlari', "Yumshoq yostiq-o'yinchoq", "Antistress o'yinchoqlar", 'Qo\'g\'irchoqlar', 'Hayvonlar', 'Boshqa'] },
+    { key: 'size', label: "O'lchami (Bo'yi)", type: 'select', options: ['20 sm (Kichik)', '35 sm', '50 sm (O\'rtacha)', '70 sm', '1 metr', '1.5 metr', '2 metr (Gigant)'] },
+    { key: 'filling', label: 'To\'ldiruvchi material (Ichki qismi)', type: 'select', options: ['Xolofayber', 'Sintepon', 'Antistress granulalar', 'Paxta', 'Aralash'] },
+    { key: 'washable', label: 'Yuvish imkoniyati', type: 'select', options: ["Kir yuvish mashinasida yuvsa bo'ladi", 'Faqat quruq tozalash (Ximchistka)', "Qo'lda yuvinadi"] },
+    { key: 'hypoallergenic', label: 'Gipoallergenlik', type: 'select', options: ['Ha (Allergiya bermaydi)', 'Oddiy'] },
+  ],
+  // ── Radioboshqaruvli va interaktiv (38) ──
+  38: [
+    { key: 'type', label: 'Turi', type: 'select', options: ['Radioboshqaruvli mashina (Pultli)', 'Dron / Vertolyot', 'Robotlar', "Gapiradigan qo'g'irchoqlar", 'Gapiradigan hayvonlar', 'Boshqa'] },
+    { key: 'control', label: 'Boshqaruv turi', type: 'select', options: ['Masofaviy pult (2.4 GHz)', 'Qo\'l harakati orqali (Sensorli)', 'Telefon (App) orqali', 'Infra-qizil (IR)'] },
+    { key: 'power', label: 'Quvvatlanish turi', type: 'select', options: ['Batareyka (AA/AAA)', 'Akkumulyatorli (USB zaryad)', 'Akkumulyatorli (Maxsus zaryad)'] },
+    { key: 'features', label: 'Interaktiv funksiyalari', type: 'multiselect', options: ["O'zbekcha/Ruscha gapiradi", 'Yuradi', "Qo'shiq aytadi", 'Raqsga tushadi', 'Yorug\'lik effekti', 'Ovoz effekti'] },
+    { key: 'speed', label: 'Tezligi (Mashinalar uchun)', type: 'select', options: ["Oddiy (Uydagi)", 'Driftbop (Tezyurar)', 'Off-road (Yo\'lsiz)', "Yo'q (Mashina emas)"] },
+  ],
+  // ── Stol o'yinlari (39) ──
+  39: [
+    { key: 'type', label: 'Turi', type: 'select', options: ['Monopoliya', 'Shaxmat / Shashka', 'Jenga (Yog\'ochli minora)', 'Uno (Karta o\'yini)', 'Savol-javoblar (Viktorina)', 'Boshqa'] },
+    { key: 'players', label: "O'yinchilar soni", type: 'select', options: ['2 kishilik', '2-4 kishi', "Katta kompaniya uchun (4-10 kishi)", '10+ kishi'] },
+    { key: 'language', label: "O'yin tili", type: 'select', options: ["O'zbekcha", 'Ruscha', 'Inglizcha', "O'zbekcha va Ruscha"] },
+    { key: 'duration', label: "Bitta o'yin davomiyligi", type: 'select', options: ['15 daqiqa (Tezkor)', '30-60 daqiqa', '2+ soat (Uzun o\'yinlar)'] },
+    { key: 'age_range', label: 'Tavsiya etilgan yosh', type: 'select', options: ['3+', '5+', '7+', '10+', '14+', '16+ (Kattalar uchun)'] },
   ],
 }
 
