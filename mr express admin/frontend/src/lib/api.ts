@@ -48,6 +48,9 @@ export interface ProductRow {
   category_id: number
   category_name?: string
   images: string[]
+  is_featured: boolean
+  is_discount: boolean
+  attributes?: Record<string, unknown> | null
 }
 
 export interface DashboardStats {
@@ -185,6 +188,14 @@ export const api = {
     apiClient.post<{ item: ProductRow; images: string[] }>('/catalog/products', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
+
+  updateProduct: (id: number, formData: FormData) =>
+    apiClient.put<{ item: ProductRow }>(`/catalog/products/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
+  deleteProduct: (id: number) =>
+    apiClient.delete<{ ok: boolean }>(`/catalog/products/${id}`),
 
   getUsers: (params?: { q?: string; page?: number; limit?: number }) =>
     apiClient.get<{ items: UserRow[]; total: number }>('/users', { params }),

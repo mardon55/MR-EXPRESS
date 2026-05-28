@@ -69,23 +69,27 @@ async def list_products(
         offset,
     )
     import json
+    result = []
     for r in rows:
         imgs = await db.fetch(
             "SELECT image_url, sort_order FROM product_images WHERE product_id = ? ORDER BY sort_order",
             r["id"],
         )
-        r["images"] = [i["image_url"] for i in imgs] if imgs else ([r["image_url"]] if r.get("image_url") else [])
-        r["price"] = float(r["price"])
-        if r.get("old_price"):
-            r["old_price"] = float(r["old_price"])
-        if r.get("attributes"):
+        item = dict(r)
+        item["images"] = [i["image_url"] for i in imgs] if imgs else ([r["image_url"]] if r.get("image_url") else [])
+        item["price"] = float(r["price"]) if r.get("price") is not None else 0.0
+        item["old_price"] = float(r["old_price"]) if r.get("old_price") else None
+        item["is_featured"] = bool(r.get("is_featured", 0))
+        item["is_discount"] = bool(r.get("is_discount", 0))
+        if item.get("attributes"):
             try:
-                r["attributes"] = json.loads(r["attributes"])
+                item["attributes"] = json.loads(item["attributes"])
             except Exception:
-                r["attributes"] = None
+                item["attributes"] = None
+        result.append(item)
 
     total = await db.fetchval(f"SELECT COUNT(*) FROM products p WHERE {where}", *params)
-    return {"items": rows, "total": total or 0, "page": page, "limit": limit}
+    return {"items": result, "total": total or 0, "page": page, "limit": limit}
 
 
 @router.post("/products")
@@ -98,6 +102,8 @@ async def create_product(
     subcategory_id: int | None = Form(None),
     old_price: float | None = Form(None),
     attributes: str | None = Form(None),
+    is_featured: int = Form(0),
+    is_discount: int = Form(0),
     images: list[UploadFile] | None = File(None),
 ):
     image_files = images or []
@@ -108,8 +114,8 @@ async def create_product(
 
     product_id = await db.execute(
         """
-        INSERT INTO products (category_id, name, description, price, old_price, stock, image_url, attributes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO products (category_id, name, description, price, old_price, stock, image_url, attributes, is_featured, is_discount)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         cat_id,
         name.strip(),
@@ -119,6 +125,8 @@ async def create_product(
         stock,
         None,
         attributes,
+        is_featured,
+        is_discount,
     )
 
     UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
@@ -149,4 +157,120 @@ async def create_product(
 
     row = await db.fetchrow("SELECT * FROM products WHERE id = ?", product_id)
     await bump_version()
-    return {"item": row, "images": saved_urls}
+    return {
+        "item": {
+            **dict(row),
+            "price": float(row["price"]) if row.get("price") is not None else 0.0,
+            "old_price": float(row["old_price"]) if row.get("old_price") else None,
+            "is_featured": bool(row.get("is_featured", 0)),
+            "is_discount": bool(row.get("is_discount", 0)),
+            "images": saved_urls,
+        },
+        "images": saved_urls,
+    }
+
+
+@router.put("/products/{product_id}")
+async def update_product(
+    product_id: int,
+    name: str = Form(...),
+    description: str = Form(""),
+    price: float = Form(...),
+    stock: int = Form(100),
+    category_id: int = Form(...),
+    subcategory_id: int | None = Form(None),
+    old_price: float | None = Form(None),
+    attributes: str | None = Form(None),
+    is_featured: int = Form(0),
+    is_discount: int = Form(0),
+    images: list[UploadFile] | None = File(None),
+):
+    existing = await db.fetchrow("SELECT id FROM products WHERE id = ?", product_id)
+    if not existing:
+        raise HTTPException(404, "Mahsulot topilmadi")
+
+    cat_id = subcategory_id or category_id
+    cat = await db.fetchrow("SELECT id FROM categories WHERE id = ?", cat_id)
+    if not cat:
+        raise HTTPException(400, "Kategoriya topilmadi")
+
+    await db.execute(
+        """
+        UPDATE products SET
+            category_id = ?, name = ?, description = ?, price = ?,
+            old_price = ?, stock = ?, is_featured = ?, is_discount = ?,
+            attributes = ?
+        WHERE id = ?
+        """,
+        cat_id,
+        name.strip(),
+        description,
+        price,
+        old_price if old_price and old_price > 0 else None,
+        stock,
+        is_featured,
+        is_discount,
+        attributes,
+        product_id,
+    )
+
+    image_files = [img for img in (images or []) if img.filename]
+    saved_urls: list[str] = []
+    if image_files:
+        UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
+        existing_count = await db.fetchval(
+            "SELECT COUNT(*) FROM product_images WHERE product_id = ?", product_id
+        )
+        for i, img in enumerate(image_files[:6]):
+            ext = Path(img.filename).suffix.lower() or ".jpg"
+            fname = f"{product_id}_{uuid4().hex[:8]}{ext}"
+            dest = UPLOAD_ROOT / fname
+            content = await img.read()
+            dest.write_bytes(content)
+            url = f"/uploads/{fname}"
+            saved_urls.append(url)
+            await db.execute(
+                "INSERT INTO product_images (product_id, image_url, sort_order) VALUES (?, ?, ?)",
+                product_id,
+                url,
+                (existing_count or 0) + i,
+            )
+        first_img = await db.fetchrow(
+            "SELECT image_url FROM product_images WHERE product_id = ? ORDER BY sort_order LIMIT 1",
+            product_id,
+        )
+        if first_img:
+            await db.execute(
+                "UPDATE products SET image_url = ? WHERE id = ?",
+                first_img["image_url"],
+                product_id,
+            )
+
+    row = await db.fetchrow("SELECT * FROM products WHERE id = ?", product_id)
+    all_imgs = await db.fetch(
+        "SELECT image_url FROM product_images WHERE product_id = ? ORDER BY sort_order",
+        product_id,
+    )
+    await bump_version()
+    return {
+        "item": {
+            **dict(row),
+            "price": float(row["price"]) if row.get("price") is not None else 0.0,
+            "old_price": float(row["old_price"]) if row.get("old_price") else None,
+            "is_featured": bool(row.get("is_featured", 0)),
+            "is_discount": bool(row.get("is_discount", 0)),
+            "images": [i["image_url"] for i in all_imgs],
+        }
+    }
+
+
+@router.delete("/products/{product_id}")
+async def delete_product(product_id: int):
+    existing = await db.fetchrow("SELECT id FROM products WHERE id = ?", product_id)
+    if not existing:
+        raise HTTPException(404, "Mahsulot topilmadi")
+
+    await db.execute("DELETE FROM products WHERE id = ?", product_id)
+    await db.execute("DELETE FROM product_images WHERE product_id = ?", product_id)
+    await bump_version()
+    return {"ok": True}

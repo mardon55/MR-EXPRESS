@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { XMarkIcon, PlusIcon, XCircleIcon } from '@heroicons/react/24/outline'
 import { GlassButton } from '@/components/ui/GlassButton'
-import { api, type CategoryNode } from '@/lib/api'
+import { api, type CategoryNode, type ProductRow } from '@/lib/api'
 import { ImageUploaderGrid } from './ImageUploaderGrid'
 import { CategoryDependentSelect } from './CategoryDependentSelect'
 import { RichTextEditor } from './RichTextEditor'
@@ -12,6 +12,7 @@ interface AddProductModalProps {
   open: boolean
   onClose: () => void
   onCreated: () => void
+  editProduct?: ProductRow | null
 }
 
 type FieldType = 'text' | 'select' | 'multiselect'
@@ -48,7 +49,7 @@ const CATEGORY_FIELDS: Record<number, CatField[]> = {
     { key: 'brand', label: 'Brend', type: 'text', placeholder: "L'Oreal, MAC, Nivea, Chanel..." },
     { key: 'volume', label: 'Hajm/Miqdor', type: 'text', placeholder: '50ml, 100ml, 200g...' },
     { key: 'skin_type', label: 'Teri turi', type: 'multiselect', options: ['Barcha teri', 'Quruq', "Yog'li", 'Normal', 'Aralash', 'Sezgir'] },
-    { key: 'colors', label: 'Soya/Rang', type: 'multiselect', options: ['Nudе', 'Qizil', 'Pushti', 'Berry', 'Coral', 'Qo\'ng\'ir', 'Shaffof'] },
+    { key: 'colors', label: 'Soya/Rang', type: 'multiselect', options: ['Nudе', 'Qizil', 'Pushti', 'Berry', 'Coral', "Qo'ng'ir", 'Shaffof'] },
   ],
   5: [
     { key: 'age_range', label: 'Yosh chegarasi', type: 'select', options: ['0-1 yosh', '1-3 yosh', '3-6 yosh', '6-12 yosh', '12+ yosh'] },
@@ -138,8 +139,15 @@ function MultiSelectField({
   )
 }
 
-export function AddProductModal({ open, onClose, onCreated }: AddProductModalProps) {
+function formatPreviewPrice(val: string) {
+  const n = Number(val)
+  if (!val || isNaN(n) || n <= 0) return null
+  return new Intl.NumberFormat('ru-RU').format(Math.round(n)) + " so'm"
+}
+
+export function AddProductModal({ open, onClose, onCreated, editProduct }: AddProductModalProps) {
   const [categories, setCategories] = useState<CategoryNode[]>([])
+  const [allFlat, setAllFlat] = useState<CategoryNode[]>([])
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [oldPrice, setOldPrice] = useState('')
@@ -149,8 +157,12 @@ export function AddProductModal({ open, onClose, onCreated }: AddProductModalPro
   const [description, setDescription] = useState('')
   const [images, setImages] = useState<(File | null)[]>([])
   const [attrValues, setAttrValues] = useState<Record<string, string | string[]>>({})
+  const [isFeatured, setIsFeatured] = useState(false)
+  const [isDiscount, setIsDiscount] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const isEditing = !!editProduct
 
   const activeCatId = (categoryId as number) || null
   const catFields: CatField[] = activeCatId ? (CATEGORY_FIELDS[activeCatId] ?? []) : []
@@ -159,13 +171,49 @@ export function AddProductModal({ open, onClose, onCreated }: AddProductModalPro
     if (!open) return
     api
       .getCategories()
-      .then((res) => setCategories(res.data.items))
+      .then((res) => {
+        setCategories(res.data.items)
+        setAllFlat(res.data.flat)
+      })
       .catch(() => setError("Kategoriyalarni yuklab bo'lmadi"))
   }, [open])
 
   useEffect(() => {
-    setAttrValues({})
-  }, [categoryId])
+    if (!open || !editProduct || allFlat.length === 0) return
+    setName(editProduct.name)
+    setPrice(String(editProduct.price))
+    setOldPrice(editProduct.old_price ? String(editProduct.old_price) : '')
+    setStock(String(editProduct.stock))
+    setDescription(editProduct.description || '')
+    setIsFeatured(!!editProduct.is_featured)
+    setIsDiscount(!!editProduct.is_discount)
+    setImages([])
+
+    const productCat = allFlat.find((c) => c.id === editProduct.category_id)
+    if (productCat?.parent_id) {
+      setCategoryId(productCat.parent_id)
+      setSubcategoryId(editProduct.category_id)
+    } else {
+      setCategoryId(editProduct.category_id)
+      setSubcategoryId('')
+    }
+
+    if (editProduct.attributes && typeof editProduct.attributes === 'object') {
+      const attrs: Record<string, string | string[]> = {}
+      for (const [k, v] of Object.entries(editProduct.attributes)) {
+        if (Array.isArray(v)) attrs[k] = v as string[]
+        else if (typeof v === 'string') attrs[k] = v
+        else if (v !== null && v !== undefined) attrs[k] = String(v)
+      }
+      setAttrValues(attrs)
+    } else {
+      setAttrValues({})
+    }
+  }, [open, editProduct?.id, allFlat.length])
+
+  useEffect(() => {
+    if (!isEditing) setAttrValues({})
+  }, [categoryId, isEditing])
 
   function reset() {
     setName('')
@@ -177,6 +225,8 @@ export function AddProductModal({ open, onClose, onCreated }: AddProductModalPro
     setDescription('')
     setImages([])
     setAttrValues({})
+    setIsFeatured(false)
+    setIsDiscount(false)
     setError(null)
   }
 
@@ -192,8 +242,10 @@ export function AddProductModal({ open, onClose, onCreated }: AddProductModalPro
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!name.trim() || !price || !categoryId) {
-      setError("Nom, narx va kategoriya majburiy")
+
+    const priceNum = Number(price)
+    if (!name.trim() || !price || isNaN(priceNum) || priceNum <= 0 || !categoryId) {
+      setError("Nom, narx (0 dan katta) va kategoriya majburiy")
       return
     }
 
@@ -206,29 +258,41 @@ export function AddProductModal({ open, onClose, onCreated }: AddProductModalPro
     const form = new FormData()
     form.append('name', name.trim())
     form.append('description', description)
-    form.append('price', String(Number(price)))
+    form.append('price', String(priceNum))
     form.append('stock', String(Number(stock) || 100))
     form.append('category_id', String(categoryId))
     if (subcategoryId) form.append('subcategory_id', String(subcategoryId))
-    if (oldPrice && Number(oldPrice) > 0) form.append('old_price', String(Number(oldPrice)))
+    const oldPriceNum = Number(oldPrice)
+    if (oldPrice && !isNaN(oldPriceNum) && oldPriceNum > 0) {
+      form.append('old_price', String(oldPriceNum))
+    }
     if (Object.keys(cleanAttrs).length > 0)
       form.append('attributes', JSON.stringify(cleanAttrs))
+    form.append('is_featured', isFeatured ? '1' : '0')
+    form.append('is_discount', isDiscount ? '1' : '0')
     images.forEach((file) => {
       if (file) form.append('images', file)
     })
 
     setSaving(true)
     try {
-      await api.createProduct(form)
+      if (isEditing && editProduct) {
+        await api.updateProduct(editProduct.id, form)
+      } else {
+        await api.createProduct(form)
+      }
       reset()
       onCreated()
       onClose()
     } catch {
-      setError('Mahsulot saqlanmadi. Backend ishlayotganini tekshiring.')
+      setError(isEditing ? "Mahsulot yangilanmadi. Tekshiring." : "Mahsulot saqlanmadi. Tekshiring.")
     } finally {
       setSaving(false)
     }
   }
+
+  const pricePreview = formatPreviewPrice(price)
+  const oldPricePreview = formatPreviewPrice(oldPrice)
 
   return (
     <AnimatePresence>
@@ -256,9 +320,11 @@ export function AddProductModal({ open, onClose, onCreated }: AddProductModalPro
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <h2 id="add-product-title" className="text-xl font-bold text-ink-900 dark:text-white">
-                  Yangi mahsulot
+                  {isEditing ? `Tahrirlash: ${editProduct?.name}` : 'Yangi mahsulot'}
                 </h2>
-                <p className="mt-1 text-sm text-ink-500">6 tagacha rasm, kategoriya, tavsif va xususiyatlar</p>
+                <p className="mt-1 text-sm text-ink-500">
+                  {isEditing ? 'Maydonlarni o\'zgartiring va saqlang' : '6 tagacha rasm, kategoriya, tavsif va xususiyatlar'}
+                </p>
               </div>
               <button
                 type="button"
@@ -316,21 +382,26 @@ export function AddProductModal({ open, onClose, onCreated }: AddProductModalPro
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-ink-600 dark:text-ink-300">
-                    Narx (so&apos;m)
+                    💰 Joriy narx (so&apos;m) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="number"
-                    min={0}
+                    min={1}
                     className={inputClass}
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
-                    placeholder="1 290 000"
+                    placeholder="1290000"
                     required
                   />
+                  {pricePreview && (
+                    <p className="mt-1 text-xs font-semibold text-blue-600 dark:text-blue-400">
+                      ✓ {pricePreview}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium text-ink-600 dark:text-ink-300">
-                    Eski narx — chegirma uchun (ixtiyoriy)
+                    🏷 Eski narx — chegirma uchun (ixtiyoriy)
                   </label>
                   <input
                     type="number"
@@ -338,9 +409,43 @@ export function AddProductModal({ open, onClose, onCreated }: AddProductModalPro
                     className={inputClass}
                     value={oldPrice}
                     onChange={(e) => setOldPrice(e.target.value)}
-                    placeholder="1 590 000"
+                    placeholder="1590000"
                   />
+                  {oldPricePreview && (
+                    <p className="mt-1 text-xs font-semibold text-ink-400 line-through">
+                      {oldPricePreview}
+                    </p>
+                  )}
                 </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsFeatured((v) => !v)}
+                  className={cn(
+                    'flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold transition-all',
+                    isFeatured
+                      ? 'border-amber-400 bg-amber-400/15 text-amber-600 dark:text-amber-400'
+                      : 'frosted-pill border-white/20 text-ink-500',
+                  )}
+                >
+                  ⭐ Tavsiya etilgan
+                  {isFeatured && <span className="ml-1 text-xs font-bold text-amber-500">ON</span>}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsDiscount((v) => !v)}
+                  className={cn(
+                    'flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold transition-all',
+                    isDiscount
+                      ? 'border-rose-400 bg-rose-400/15 text-rose-600 dark:text-rose-400'
+                      : 'frosted-pill border-white/20 text-ink-500',
+                  )}
+                >
+                  🔥 Aksiya mahsulot
+                  {isDiscount && <span className="ml-1 text-xs font-bold text-rose-500">ON</span>}
+                </button>
               </div>
 
               {catFields.length > 0 && (
@@ -405,7 +510,7 @@ export function AddProductModal({ open, onClose, onCreated }: AddProductModalPro
                   Bekor qilish
                 </GlassButton>
                 <GlassButton type="submit" variant="primary" disabled={saving}>
-                  {saving ? 'Saqlanmoqda…' : 'Saqlash'}
+                  {saving ? 'Saqlanmoqda…' : isEditing ? 'Yangilash' : 'Saqlash'}
                 </GlassButton>
               </div>
             </form>
