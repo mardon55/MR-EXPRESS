@@ -1262,7 +1262,7 @@ async def list_group_buys(
         """
         SELECT g.*,
                p.name  AS product_name,
-               p.image_url AS product_image,
+               COALESCE(g.image_url, p.image_url) AS product_image,
                p.price AS product_price
         FROM group_buys g
         JOIN products p ON p.id = g.product_id

@@ -119,6 +119,7 @@ export interface GroupBuyRow {
   product_id: number
   product_name: string
   product_image: string | null
+  image_url: string | null
   required_participants: number
   current_participants: number
   progress_percent: number
@@ -256,11 +257,10 @@ export const api = {
 
   getGroupBuys: () => apiClient.get<{ items: GroupBuyRow[]; total: number }>('/group-buys'),
 
-  createGroupBuy: (body: {
-    product_id: number
-    required_participants: number
-    deadline?: string | null
-  }) => apiClient.post<{ item: GroupBuyRow }>('/group-buys', body),
+  createGroupBuy: (form: FormData) =>
+    apiClient.post<{ item: GroupBuyRow }>('/group-buys', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
 
   patchGroupBuy: (
     id: number,

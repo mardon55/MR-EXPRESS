@@ -160,6 +160,11 @@ async def _migrate(db: aiosqlite.Connection) -> None:
     if reel_cols and "price" not in reel_cols:
         await db.execute("ALTER TABLE reels ADD COLUMN price REAL")
 
+    cur = await db.execute("PRAGMA table_info(group_buys)")
+    gb_cols = {row[1] for row in await cur.fetchall()}
+    if gb_cols and "image_url" not in gb_cols:
+        await db.execute("ALTER TABLE group_buys ADD COLUMN image_url TEXT")
+
     await db.executescript(
         """
         CREATE TABLE IF NOT EXISTS _app_version (
