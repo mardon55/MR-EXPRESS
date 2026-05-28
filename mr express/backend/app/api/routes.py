@@ -288,6 +288,8 @@ async def products(
         params.extend(all_ids)
     if discount_only:
         conditions.append("is_discount = 1")
+    else:
+        conditions.append("is_discount = 0")
     if featured_only:
         conditions.append("is_featured = 1")
 
