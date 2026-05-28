@@ -218,5 +218,5 @@ export const api = {
 };
 
 export function formatPrice(n) {
-  return new Intl.NumberFormat('uz-UZ').format(n) + " so'm";
+  return new Intl.NumberFormat('ru-RU').format(Math.round(n)) + " so'm";
 }
