@@ -384,7 +384,6 @@ export default function ProductDetail() {
       : null;
 
   const rawDescription = product.description?.trim() || '';
-  const extraNote = "Mahsulot sifatli materiallardan tayyorlangan. Yetkazib berish Toshkent bo'ylab 1–3 ish kuni ichida amalga oshiriladi. Qaytarish va almashtirish 14 kun ichida mumkin.";
   const isHtml = rawDescription.includes('<') && rawDescription.includes('>');
 
   const addToCart = async () => {
@@ -524,22 +523,21 @@ export default function ProductDetail() {
           </section>
         )}
 
-        <section className="mt-7">
-          <h2 className="mb-2.5 text-[15px] font-semibold text-neutral-800">Mahsulot tavsifi</h2>
-          {isHtml ? (
-            <div
-              className="prose prose-sm max-w-none text-[14px] leading-relaxed text-neutral-600"
-              dangerouslySetInnerHTML={{ __html: rawDescription }}
-            />
-          ) : (
-            <p className="whitespace-pre-line text-[14px] leading-relaxed text-neutral-600">
-              {rawDescription || extraNote}
-            </p>
-          )}
-          {rawDescription && (
-            <p className="mt-3 text-[13px] leading-relaxed text-neutral-400">{extraNote}</p>
-          )}
-        </section>
+        {rawDescription ? (
+          <section className="mt-7">
+            <h2 className="mb-2.5 text-[15px] font-semibold text-neutral-800">Mahsulot tavsifi</h2>
+            {isHtml ? (
+              <div
+                className="product-description text-[14px] leading-relaxed text-neutral-600"
+                dangerouslySetInnerHTML={{ __html: rawDescription }}
+              />
+            ) : (
+              <p className="whitespace-pre-line text-[14px] leading-relaxed text-neutral-600">
+                {rawDescription}
+              </p>
+            )}
+          </section>
+        ) : null}
 
         <ProductReviews productId={Number(id)} />
       </div>
