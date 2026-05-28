@@ -68,11 +68,52 @@ const CATEGORY_FIELDS: Record<number, CatField[]> = {
     { key: 'port_type', label: 'Port turi', type: 'multiselect', options: ['USB-A', 'Type-C', 'Lightning (iPhone uchun)', 'Micro-USB'] },
     { key: 'cable_length', label: 'Kabel uzunligi', type: 'select', options: ['1 metr', '1.5 metr', '2 metr', '3 metr'] },
   ],
+  // ── Kiyimlar parent (fallback) ──
   2: [
-    { key: 'sizes', label: "O'lchamlar", type: 'multiselect', options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45'] },
+    { key: 'sizes', label: "O'lchamlar (Razmer)", type: 'multiselect', options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45'] },
     { key: 'colors', label: 'Ranglar', type: 'multiselect', options: ['Qora', 'Oq', "Ko'k", 'Yashil', 'Qizil', 'Sariq', 'Jigarrang', 'Kulrang', 'Binafsha', 'Pushti'] },
-    { key: 'material', label: 'Material', type: 'text', placeholder: 'Paxta, Teri, Ipak, Junli...' },
+    { key: 'material', label: 'Material (Mato)', type: 'text', placeholder: 'Paxta, Teri, Ipak, Junli...' },
     { key: 'brand', label: 'Brend', type: 'text', placeholder: 'Nike, Adidas, Zara...' },
+  ],
+  // ── Erkaklar kiyimi (21) ──
+  21: [
+    { key: 'clothing_type', label: 'Kiyim turi', type: 'multiselect', options: ['T-shirt (Futbolka)', "Ko'ylak", 'Shim', 'Jinsi', 'Kostyum-shifoner', 'Sviter', 'Kurtka'] },
+    { key: 'sizes', label: "O'lchamlar (Razmer)", type: 'multiselect', options: ['S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '46', '48', '50', '52', '54'] },
+    { key: 'colors', label: 'Ranglar', type: 'multiselect', options: ['Qora', "To'q ko'k", 'Kulrang', 'Oq', 'Jigarrang', 'Yashil', 'Qizil', 'Bej'] },
+    { key: 'material', label: 'Material (Mato)', type: 'select', options: ['Paxta (Xlopok)', "Zig'ir (Lnyanoy)", 'Jun (Sherst)', 'Sintetika', 'Djinsi', 'Aralash'] },
+    { key: 'season', label: 'Mavsum', type: 'select', options: ['Yozgi', 'Bahor/Kuz', 'Qishki', 'Universal'] },
+  ],
+  // ── Ayollar kiyimi (22) ──
+  22: [
+    { key: 'clothing_type', label: 'Kiyim turi', type: 'multiselect', options: ["Ko'ylak (Platye)", 'Yubka', 'Bluzka', 'Kostyum', 'Shimlar', 'Tunika', 'Kardigan', 'Nimcha'] },
+    { key: 'sizes', label: "O'lchamlar (Razmer)", type: 'multiselect', options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '42', '44', '46', '48', '50', '52'] },
+    { key: 'colors', label: 'Ranglar', type: 'multiselect', options: ['Pushti', 'Qizil', 'Bej (Tana rangi)', 'Qora', 'Oq', 'Binafsha', 'Sariq', "Ko'k", 'Yashil', 'Kulrang'] },
+    { key: 'material', label: 'Material (Mato)', type: 'select', options: ['Ipak (Sholk)', 'Shifon', 'Paxta', 'Trikotaj', 'Velvet', 'Atlas', 'Sintetika'] },
+    { key: 'season', label: 'Mavsum', type: 'select', options: ['Yozgi', 'Demisezon (Bahor/Kuz)', 'Qishki', 'Universal'] },
+  ],
+  // ── Bolalar kiyimi (23) ──
+  23: [
+    { key: 'clothing_type', label: 'Kiyim turi', type: 'multiselect', options: ['Kombinezon', 'Bodik', 'Futbolka', 'Shimcha', 'Nimcha', 'Sportivka', 'Pidjama'] },
+    { key: 'sizes', label: "Yoshi / O'lchami", type: 'multiselect', options: ['0-3 oy', '3-6 oy', '6-12 oy', '1-2 yosh', '3-5 yosh', '6-9 yosh', '10-14 yosh'] },
+    { key: 'gender', label: 'Bolaning jinsi', type: 'select', options: ["O'g'il bola uchun", 'Qiz bola uchun', 'Universal (Uniseks)'] },
+    { key: 'material', label: 'Material (Mato)', type: 'select', options: ['100% Paxta (Xlopok)', 'Interlok', 'Futro', 'Sintetika'] },
+    { key: 'colors', label: 'Ranglar', type: 'multiselect', options: ["Och ko'k", 'Pushti', 'Sariq', 'Oq', 'Yashil', 'Turli xil (Multfilm rasmli)'] },
+  ],
+  // ── Sport kiyimlari (24) ──
+  24: [
+    { key: 'clothing_type', label: 'Kiyim turi', type: 'multiselect', options: ['Sport kostyumi (Sportivka)', 'Shorti', 'Masterka', 'Leginsi (Tayt)', 'Sportivniy top', 'Xudi'] },
+    { key: 'sizes', label: "O'lchamlar (Razmer)", type: 'multiselect', options: ['S', 'M', 'L', 'XL', 'XXL'] },
+    { key: 'feature', label: 'Xususiyati', type: 'multiselect', options: ['Termo (Issiqlik saqlaydigan)', "Cho'ziluvchan (Elastik)", 'Namlikni shimadigan (Dri-FIT)', 'Shamol o\'tkazmaydigan (Windbreaker)'] },
+    { key: 'colors', label: 'Ranglar', type: 'multiselect', options: ['Qora', 'Neon yashil', 'Kulrang', "Ko'k", 'Qizil', 'Oq', 'Sariq'] },
+    { key: 'gender', label: 'Jinsi', type: 'select', options: ['Erkaklar uchun', 'Ayollar uchun', 'Universal'] },
+  ],
+  // ── Oyoq kiyimlar / Poyabzallar (25) ──
+  25: [
+    { key: 'type', label: 'Turi', type: 'select', options: ['Klassik tufli', 'Krossovka', 'Keda', 'Mokasina', 'Etik (Sapogi)', 'Shlyopansi', 'Cheshka'] },
+    { key: 'sizes', label: "O'lchamlar (Razmer)", type: 'multiselect', options: ['20', '22', '24', '26', '28', '30', '32', '34', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45'] },
+    { key: 'material', label: 'Material', type: 'select', options: ["Tabiiy charm (Koja)", "Sun'iy charm", 'Zamsh', 'Mato (Setka)', 'Rezina'] },
+    { key: 'gender', label: 'Jinsi', type: 'select', options: ['Erkaklar', 'Ayollar', "Bolalar (O'g'il)", 'Bolalar (Qiz)'] },
+    { key: 'season', label: 'Mavsum', type: 'select', options: ['Yozgi (Ochiq)', 'Kuzgi/Bahorgi', "Qishki (Mo'ynali/Mexli)"] },
   ],
   3: [
     { key: 'material', label: 'Material', type: 'text', placeholder: "Metall, Plastik, Yog'och..." },
