@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from pydantic import field_validator
@@ -5,7 +6,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
-_DEFAULT_WEBAPP_URL = "https://075281ae-6f02-40ef-8c9c-03b5bf66f2f4-00-28tt0515h973f.pike.replit.dev/shop/"
+_REPLIT_DOMAIN = os.environ.get("REPLIT_DEV_DOMAIN", "")
+_DEFAULT_WEBAPP_URL = (
+    f"https://{_REPLIT_DOMAIN}/shop/"
+    if _REPLIT_DOMAIN
+    else "https://075281ae-6f02-40ef-8c9c-03b5bf66f2f4-00-28tt0515h973f.pike.replit.dev/shop/"
+)
 
 
 class Settings(BaseSettings):
