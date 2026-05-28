@@ -5,6 +5,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.core.config import settings
 from app.db import sqlite as db
+from app.db.sqlite import bump_version
 
 router = APIRouter()
 UPLOAD_ROOT = Path(settings.uploads_dir)
@@ -111,6 +112,7 @@ async def create_reel(
         product_id,
         price,
     )
+    await bump_version()
     return {
         "item": {
             "id": reel_id,
