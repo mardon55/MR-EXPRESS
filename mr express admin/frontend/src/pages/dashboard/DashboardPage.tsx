@@ -2,14 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { BanknotesIcon, CalendarIcon } from '@heroicons/react/24/solid'
 import {
-  AreaChart,
-  Area,
+  ComposedChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ReferenceLine,
 } from 'recharts'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatCard } from '@/components/ui/StatCard'
@@ -25,45 +24,137 @@ const EMPTY_STATS: DashboardStats = {
   monthly_revenue: 0,
 }
 
-type ChartPoint = { day: string; revenue: number; orders: number }
+type OHLCPoint = {
+  day: string
+  open: number
+  close: number
+  high: number
+  low: number
+  orders: number
+  total_revenue: number
+}
+
 type Range = 7 | 14 | 30
 
-function formatDay(iso: string) {
+function shortMoney(v: number) {
+  if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(1)}B`
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
+  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`
+  return String(Math.round(v))
+}
+
+function formatDayLabel(iso: string) {
   const d = new Date(iso)
   return d.toLocaleDateString('uz-UZ', { month: 'short', day: 'numeric' })
 }
 
-function shortMoney(v: number) {
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
-  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`
-  return String(v)
+// ─── Yapon shami custom shape ────────────────────────────────────────────────
+// recharts Bar dataKey="high" => y=pixel(high), y+height=pixel(0)
+// Shunga ko'ra barcha OHLC ni to'g'ri koordinataga o'tkazamiz
+function CandleShape(props: any) {
+  const { x, y, width, height, payload } = props
+  if (!payload || !height || height <= 0) return null
+
+  const { open, close, high, low } = payload as OHLCPoint
+
+  // Piksel/qiymat nisbati: 0 (chart asosi) -> y+height, high -> y
+  const base = y + height          // piksel: 0 qiymati
+  const ppu  = height / (high || 1) // piksel per unit
+
+  const pxOf = (v: number) => base - v * ppu
+
+  const yHigh  = pxOf(high)
+  const yLow   = pxOf(low)
+  const yOpen  = pxOf(open)
+  const yClose = pxOf(close)
+
+  const isBull = close >= open
+  const color  = isBull ? '#10b981' : '#ef4444'
+  const cx     = x + width / 2
+  const bw     = Math.max(width * 0.60, 5)
+
+  const bodyTop    = Math.min(yOpen, yClose)
+  const bodyBottom = Math.max(yOpen, yClose)
+  const bodyH      = Math.max(bodyBottom - bodyTop, 2)
+
+  return (
+    <g>
+      {/* Yuqori wick */}
+      <line x1={cx} y1={yHigh} x2={cx} y2={bodyTop}
+        stroke={color} strokeWidth={1.5} strokeLinecap="round" />
+      {/* Pastki wick */}
+      <line x1={cx} y1={bodyBottom} x2={cx} y2={yLow}
+        stroke={color} strokeWidth={1.5} strokeLinecap="round" />
+      {/* Shama tanasi */}
+      <rect
+        x={cx - bw / 2} y={bodyTop}
+        width={bw} height={bodyH}
+        fill={color} fillOpacity={isBull ? 0.88 : 0.80}
+        stroke={color} strokeWidth={1} rx={2}
+      />
+      {/* Markaziy chiziq (doji belgisi uchun) */}
+      {bodyH <= 2 && (
+        <line x1={cx - bw / 2} y1={bodyTop} x2={cx + bw / 2} y2={bodyTop}
+          stroke={color} strokeWidth={2} />
+      )}
+    </g>
+  )
 }
 
-function CustomTooltip({ active, payload, label }: any) {
+// ─── Tooltip ─────────────────────────────────────────────────────────────────
+function CandleTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null
-  const d = payload[0]?.payload as ChartPoint
+  const d = payload[0]?.payload as OHLCPoint
+  if (!d) return null
+  const isBull = d.close >= d.open
+  const change = d.open > 0 ? ((d.close - d.open) / d.open * 100).toFixed(1) : null
+
   return (
-    <div className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 shadow-xl backdrop-blur-md dark:bg-neutral-900/90 dark:border-white/10">
-      <p className="mb-1 text-xs font-semibold text-neutral-500 dark:text-neutral-400">
-        {formatDay(label)}
+    <div className="min-w-[200px] rounded-2xl border border-white/30 bg-white/95 px-4 py-3 shadow-2xl backdrop-blur-xl dark:bg-neutral-900/95 dark:border-white/10">
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+        {formatDayLabel(d.day)}
       </p>
-      <p className="text-[15px] font-bold text-brand-600 dark:text-accent-cyan">
-        {formatCurrency(d.revenue)}
-      </p>
-      <p className="mt-0.5 text-xs text-neutral-500">
-        {d.orders} ta buyurtma
-      </p>
+      <div className="flex flex-col gap-1.5 text-[12px]">
+        <Row label="Ochilish (1-buyurtma)"  val={shortMoney(d.open)} />
+        <Row
+          label="Yopilish (oxirgi)"
+          val={shortMoney(d.close)}
+          cls={isBull ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}
+        />
+        {change && (
+          <p className={`text-[11px] font-semibold ${isBull ? 'text-emerald-500' : 'text-red-400'}`}>
+            {isBull ? '▲' : '▼'} {Math.abs(Number(change))}% o'zgarish
+          </p>
+        )}
+        <hr className="border-neutral-100 dark:border-neutral-700" />
+        <Row label="Maksimum buyurtma"  val={shortMoney(d.high)} cls="text-emerald-600" />
+        <Row label="Minimum buyurtma"   val={shortMoney(d.low)}  cls="text-red-400" />
+        <hr className="border-neutral-100 dark:border-neutral-700" />
+        <Row label="Jami daromad"       val={shortMoney(d.total_revenue)} cls="text-brand-600 font-bold" />
+        <Row label="Buyurtmalar soni"   val={`${d.orders} ta`} />
+      </div>
     </div>
   )
 }
 
+function Row({ label, val, cls = '' }: { label: string; val: string; cls?: string }) {
+  return (
+    <div className="flex justify-between gap-6">
+      <span className="text-neutral-500">{label}</span>
+      <span className={`tabular-nums ${cls || 'font-semibold'}`}>{val}</span>
+    </div>
+  )
+}
+
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
 export function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS)
-  const [chart, setChart] = useState<ChartPoint[]>([])
-  const [range, setRange] = useState<Range>(14)
-  const [loading, setLoading] = useState(true)
+  const [stats, setStats]             = useState<DashboardStats>(EMPTY_STATS)
+  const [chart, setChart]             = useState<OHLCPoint[]>([])
+  const [range, setRange]             = useState<Range>(14)
+  const [loading, setLoading]         = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [live, setLive]               = useState(false)
+  const intervalRef                   = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const loadData = async (days: number, silent = false) => {
     if (!silent) setLoading(true)
@@ -75,60 +166,51 @@ export function DashboardPage() {
       setStats(statsRes.data)
       setChart(chartRes.data)
       setLastUpdated(new Date())
-    } catch {
-      /* ignore */
-    } finally {
-      if (!silent) setLoading(false)
-    }
+    } catch { /* ignore */ }
+    finally { if (!silent) setLoading(false) }
   }
 
   useEffect(() => {
     loadData(range)
-    intervalRef.current = setInterval(() => loadData(range, true), 8000)
+    intervalRef.current = setInterval(() => loadData(range, true), 5000)
     const es = new EventSource('/api/v1/orders/events')
-    es.onmessage = () => loadData(range, true)
+    es.onopen    = () => setLive(true)
+    es.onerror   = () => setLive(false)
+    es.onmessage = (e) => {
+      try { if (JSON.parse(e.data).type !== 'heartbeat') loadData(range, true) }
+      catch { loadData(range, true) }
+    }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
-      es.close()
+      es.close(); setLive(false)
     }
   }, [range])
 
-  const timeStr = lastUpdated
-    ? lastUpdated.toLocaleTimeString('uz-UZ', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      })
-    : null
+  const timeStr = lastUpdated?.toLocaleTimeString('uz-UZ', {
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  })
 
-  // Grafik uchun gradient id
-  const gradId = 'revenueGrad'
-
-  // Eng yuqori nuqta (referens chiziq uchun)
-  const maxPoint = chart.reduce(
-    (acc, p) => (p.revenue > acc.revenue ? p : acc),
-    { day: '', revenue: 0, orders: 0 },
-  )
+  const totalRev    = chart.reduce((s, p) => s + p.total_revenue, 0)
+  const totalOrders = chart.reduce((s, p) => s + p.orders, 0)
 
   return (
     <motion.div variants={staggerContainer} initial="initial" animate="animate">
       <PageHeader
         title="Boshqaruv paneli"
-        description="Aylanma mablag' tahlili va hisoboti."
+        description="Aylanma mablag' tahlili — Yapon shami grafigi."
         action={
-          timeStr ? (
-            <span className="text-sm text-ink-400 dark:text-ink-500">
-              🟢 {timeStr}
+          <div className="flex items-center gap-2 text-sm">
+            <span className={`h-2 w-2 rounded-full transition-colors ${live ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-400'}`} />
+            <span className="text-ink-400 dark:text-ink-500">
+              {live ? 'LIVE' : 'Ulanmoqda'}{timeStr ? ` · ${timeStr}` : ''}
             </span>
-          ) : undefined
+          </div>
         }
       />
 
-      {loading && (
-        <p className="mb-4 text-sm text-ink-500">Yuklanmoqda…</p>
-      )}
+      {loading && <p className="mb-4 text-sm text-ink-500">Yuklanmoqda…</p>}
 
-      {/* 2 ta stat karta */}
+      {/* Kunlik va Haftalik aylanma kartalari */}
       <div className="mb-6 grid gap-5 sm:grid-cols-2">
         <StatCard
           label="Kunlik aylanma"
@@ -144,15 +226,18 @@ export function DashboardPage() {
         />
       </div>
 
-      {/* Birja grafigi */}
+      {/* Yapon shami grafigi */}
       <GlassPanel>
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-ink-900 dark:text-white">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-ink-900 dark:text-white">
               Daromad grafigi
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-normal text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+                🕯 Yapon shami
+              </span>
             </h2>
             <p className="mt-0.5 text-xs text-ink-400">
-              Kunlik daromad dinamikasi (UZS)
+              Har bir shama = bir kunlik buyurtmalar (Ochilish · Yopilish · Maksimum · Minimum)
             </p>
           </div>
           <div className="flex items-center gap-1 rounded-2xl border border-white/30 bg-white/40 p-1 dark:border-white/10 dark:bg-white/5">
@@ -173,84 +258,72 @@ export function DashboardPage() {
         </div>
 
         {chart.length === 0 ? (
-          <div className="flex h-64 items-center justify-center text-ink-400 text-sm">
-            Bu davrda ma&apos;lumot yo&apos;q
+          <div className="flex h-72 flex-col items-center justify-center gap-3 text-ink-400">
+            <span className="text-5xl">🕯</span>
+            <span className="text-sm">Bu davrda buyurtmalar yo&apos;q</span>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={chart} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.35} />
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.01} />
-                </linearGradient>
-              </defs>
+          <ResponsiveContainer width="100%" height={320}>
+            <ComposedChart
+              data={chart}
+              margin={{ top: 16, right: 20, left: 0, bottom: 0 }}
+              barCategoryGap="40%"
+            >
               <CartesianGrid
                 strokeDasharray="3 6"
-                stroke="rgba(148,163,184,0.15)"
+                stroke="rgba(148,163,184,0.12)"
                 vertical={false}
               />
               <XAxis
                 dataKey="day"
-                tickFormatter={formatDay}
+                tickFormatter={formatDayLabel}
                 tick={{ fontSize: 11, fill: '#94a3b8' }}
                 axisLine={false}
                 tickLine={false}
-                interval="preserveStartEnd"
               />
               <YAxis
-                tickFormatter={(v) => shortMoney(v)}
+                domain={[0, (max: number) => Math.ceil(max * 1.12)]}
+                tickFormatter={shortMoney}
                 tick={{ fontSize: 11, fill: '#94a3b8' }}
                 axisLine={false}
                 tickLine={false}
-                width={55}
+                width={60}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '4 4' }} />
-              {maxPoint.revenue > 0 && (
-                <ReferenceLine
-                  y={maxPoint.revenue}
-                  stroke="#10b981"
-                  strokeDasharray="4 4"
-                  strokeWidth={1.5}
-                  label={{
-                    value: `MAX: ${shortMoney(maxPoint.revenue)}`,
-                    position: 'insideTopRight',
-                    fontSize: 10,
-                    fill: '#10b981',
-                    fontWeight: 600,
-                  }}
-                />
-              )}
-              <Area
-                type="monotone"
-                dataKey="revenue"
-                stroke="#3b82f6"
-                strokeWidth={2.5}
-                fill={`url(#${gradId})`}
-                dot={false}
-                activeDot={{ r: 5, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }}
+              <Tooltip
+                content={<CandleTooltip />}
+                cursor={{ fill: 'rgba(148,163,184,0.06)' }}
               />
-            </AreaChart>
+              {/* dataKey="high" - bu recharts ga y,height ni to'g'ri hisoblash uchun kerak */}
+              <Bar
+                dataKey="high"
+                shape={<CandleShape />}
+                isAnimationActive={false}
+              />
+            </ComposedChart>
           </ResponsiveContainer>
         )}
 
         {/* Pastki legend */}
-        <div className="mt-4 flex flex-wrap items-center gap-6 border-t border-white/20 pt-4 dark:border-white/10">
+        <div className="mt-4 flex flex-wrap items-center gap-5 border-t border-white/20 pt-4 dark:border-white/10">
           <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-brand-500" />
-            <span className="text-xs text-ink-500">Daromad (UZS)</span>
+            <span className="h-4 w-3 rounded-sm bg-emerald-500 opacity-85" />
+            <span className="text-xs text-ink-500">O'sish — yopilish &gt; ochilish</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="h-px w-6 border-t-2 border-dashed border-emerald-500" />
-            <span className="text-xs text-ink-500">Maksimum nuqta</span>
+            <span className="h-4 w-3 rounded-sm bg-red-500 opacity-80" />
+            <span className="text-xs text-ink-500">Tushish — yopilish &lt; ochilish</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-px h-4 border-l border-neutral-400" />
+            <span className="text-xs text-ink-500">Wick = narx oraliq</span>
           </div>
           {chart.length > 0 && (
             <span className="ml-auto text-xs text-ink-400">
               Jami:{' '}
-              <span className="font-semibold text-ink-700 dark:text-ink-200">
-                {formatCurrency(chart.reduce((s, p) => s + p.revenue, 0))}
+              <span className="font-bold text-ink-700 dark:text-ink-200">
+                {formatCurrency(totalRev)}
               </span>
-              {' '}— {chart.reduce((s, p) => s + p.orders, 0)} buyurtma
+              {' · '}{totalOrders} ta buyurtma
             </span>
           )}
         </div>

@@ -44,24 +44,46 @@ async def get_dashboard_stats():
 
 @router.get("/revenue-chart")
 async def get_revenue_chart(days: int = 30):
-    """So'nggi N kunlik daromad grafigi uchun."""
+    """
+    Yapon shami (OHLC) grafigi uchun kunlik daromad.
+    Har bir shama = bir kun:
+      open  = kun boshidagi birinchi buyurtma summasi
+      close = kun oxiridagi oxirgi buyurtma summasi
+      high  = o'sha kundagi eng katta buyurtma
+      low   = o'sha kundagi eng kichik buyurtma
+    """
+    safe_days = max(1, min(days, 365))
+
     rows = await db.fetch(
         f"""
         SELECT
-            DATE(created_at, 'localtime') AS day,
-            COALESCE(SUM(total), 0)       AS revenue,
-            COUNT(*)                       AS orders
-        FROM orders
-        WHERE DATE(created_at, 'localtime') >= DATE('now', '-{max(1, min(days, 365))} days', 'localtime')
+            DATE(created_at, 'localtime')                         AS day,
+            COALESCE(MAX(total), 0)                               AS high,
+            COALESCE(MIN(total), 0)                               AS low,
+            COUNT(*)                                               AS orders,
+            COALESCE(SUM(total), 0)                               AS total_revenue,
+            (SELECT o2.total FROM orders o2
+             WHERE DATE(o2.created_at,'localtime') = DATE(o.created_at,'localtime')
+             ORDER BY o2.created_at ASC  LIMIT 1)                 AS open,
+            (SELECT o3.total FROM orders o3
+             WHERE DATE(o3.created_at,'localtime') = DATE(o.created_at,'localtime')
+             ORDER BY o3.created_at DESC LIMIT 1)                 AS close
+        FROM orders o
+        WHERE DATE(created_at, 'localtime') >= DATE('now', '-{safe_days} days', 'localtime')
         GROUP BY day
         ORDER BY day ASC
         """
     )
+
     return [
         {
-            "day": r["day"],
-            "revenue": float(r["revenue"]),
-            "orders": int(r["orders"]),
+            "day":           r["day"],
+            "open":          float(r["open"]  or 0),
+            "close":         float(r["close"] or 0),
+            "high":          float(r["high"]  or 0),
+            "low":           float(r["low"]   or 0),
+            "orders":        int(r["orders"]),
+            "total_revenue": float(r["total_revenue"] or 0),
         }
         for r in rows
     ]
