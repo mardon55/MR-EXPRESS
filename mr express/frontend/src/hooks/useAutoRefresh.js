@@ -2,14 +2,11 @@ import { useEffect, useRef } from 'react';
 
 /**
  * Admin har qanday o'zgarish kiritganda mini-app real vaqtda yangilanadi.
- * - Har INTERVAL ms da so'rov yuboriladi (fon rejimida emas)
+ * - SSE orqali darhol (mrexpress:refresh eventi)
+ * - Har INTERVAL ms da zapas polling (default 10 sek)
  * - Foydalanuvchi boshqa dasturdan qaytganda darhol yangilanadi
- * - Vite HMR bilan mos ishlaydi
- *
- * @param {() => void} callback - yangilanish funksiyasi
- * @param {number} interval - ms da polling oraliq (default 20_000 = 20 sek)
  */
-export function useAutoRefresh(callback, interval = 20_000) {
+export function useAutoRefresh(callback, interval = 10_000) {
   const cbRef = useRef(callback);
 
   useEffect(() => {
@@ -31,12 +28,14 @@ export function useAutoRefresh(callback, interval = 20_000) {
 
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('focus', onVisibility);
+    window.addEventListener('mrexpress:refresh', run);
 
     const timer = setInterval(run, interval);
 
     return () => {
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('focus', onVisibility);
+      window.removeEventListener('mrexpress:refresh', run);
       clearInterval(timer);
     };
   }, [interval]);

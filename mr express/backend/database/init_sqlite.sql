@@ -119,3 +119,11 @@ CREATE TABLE IF NOT EXISTS reviews (
     created_at TEXT DEFAULT (datetime('now')),
     UNIQUE (product_id, user_id)
 );
+
+CREATE TABLE IF NOT EXISTS _app_version (
+    id INTEGER PRIMARY KEY DEFAULT 1,
+    version INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+INSERT OR IGNORE INTO _app_version (id, version) VALUES (1, 0);

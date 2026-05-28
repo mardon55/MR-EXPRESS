@@ -5,6 +5,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.core.config import settings
 from app.db import sqlite as db
+from app.db.sqlite import bump_version
 
 router = APIRouter()
 
@@ -140,4 +141,5 @@ async def create_product(
         )
 
     row = await db.fetchrow("SELECT * FROM products WHERE id = ?", product_id)
+    await bump_version()
     return {"item": row, "images": saved_urls}

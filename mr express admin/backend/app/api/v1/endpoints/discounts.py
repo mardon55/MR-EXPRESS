@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.db import sqlite as db
+from app.db.sqlite import bump_version
 
 router = APIRouter()
 
@@ -188,6 +189,7 @@ async def create_discount(body: DiscountBody):
     if body.is_active:
         await _apply_discount_to_products(body.scope_type, body.scope_id, body.percent)
     row = await db.fetchrow("SELECT * FROM discounts WHERE id = ?", discount_id)
+    await bump_version()
     return {"item": _discount_item(row)}
 
 
@@ -239,6 +241,7 @@ async def patch_discount(discount_id: int, body: DiscountPatch):
         await _remove_discount_from_products(current_scope_type, current_scope_id, discount_id)
         await _apply_discount_to_products(new_scope_type, new_scope_id, new_percent)
 
+    await bump_version()
     return {"item": _discount_item(updated)}
 
 
@@ -250,4 +253,5 @@ async def delete_discount(discount_id: int):
     if bool(row["is_active"]):
         await _remove_discount_from_products(row["scope_type"], row["scope_id"], discount_id)
     await db.execute("DELETE FROM discounts WHERE id = ?", discount_id)
+    await bump_version()
     return {"ok": True}

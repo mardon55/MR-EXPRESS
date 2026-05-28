@@ -155,6 +155,16 @@ async def _migrate(db: aiosqlite.Connection) -> None:
     if reel_cols and "price" not in reel_cols:
         await db.execute("ALTER TABLE reels ADD COLUMN price REAL")
 
+    await db.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS _app_version (
+            id INTEGER PRIMARY KEY DEFAULT 1,
+            version INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT DEFAULT (datetime('now'))
+        );
+        INSERT OR IGNORE INTO _app_version (id, version) VALUES (1, 0);
+        """
+    )
     await _seed_subcategories(db)
     await _seed_catalog_products(db)
     await _seed_admin_samples(db)
@@ -302,6 +312,20 @@ async def fetchval(sql: str, *args):
     if row is None:
         return None
     return list(row.values())[0]
+
+
+async def bump_version() -> None:
+    """Admin har qanday o'zgarish kiritganda mini-app SSE orqali xabar oladi."""
+    try:
+        await execute(
+            """
+            UPDATE _app_version
+            SET version = version + 1, updated_at = datetime('now')
+            WHERE id = 1
+            """
+        )
+    except Exception:
+        pass
 
 
 async def execute(sql: str, *args) -> int | None:

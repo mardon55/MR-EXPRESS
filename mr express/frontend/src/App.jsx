@@ -6,7 +6,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
 import BottomNav from './components/BottomNav';
 import { syncTelegramTopInset } from './utils/telegramSafeArea';
-import { api } from './api';
+import { api, cacheInvalidate } from './api';
 
 // ─── Lazy pages (code splitting — har sahifa alohida chunk) ──────────────────
 const Home          = lazy(() => import('./pages/Home'));
@@ -143,7 +143,43 @@ function AppChrome({ children }) {
   );
 }
 
+function useMiniAppSSE() {
+  useEffect(() => {
+    let es = null;
+    let retryTimer = null;
+
+    function connect() {
+      es = new EventSource('/api/events');
+
+      es.onmessage = (e) => {
+        try {
+          const event = JSON.parse(e.data);
+          if (event.type === 'refresh') {
+            cacheInvalidate('/api/products', '/api/banners', '/api/categories', '/api/reels');
+            window.dispatchEvent(new CustomEvent('mrexpress:refresh'));
+          }
+        } catch {}
+      };
+
+      es.onerror = () => {
+        es.close();
+        es = null;
+        retryTimer = setTimeout(connect, 5000);
+      };
+    }
+
+    connect();
+
+    return () => {
+      if (es) es.close();
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, []);
+}
+
 export default function App() {
+  useMiniAppSSE();
+
   useEffect(() => {
     const tg = initTelegramFullscreen();
     syncTelegramTopInset();

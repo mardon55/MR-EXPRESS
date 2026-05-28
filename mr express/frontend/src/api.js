@@ -46,7 +46,7 @@ function getTelegramHeaders() {
 
 // ─── SWR Cache ────────────────────────────────────────────────────────────────
 const _cache = new Map();
-const CACHE_TTL = 30_000; // 30 soniya
+const CACHE_TTL = 6_000; // 6 soniya (SSE orqali real-time yangilanadi)
 
 function _cacheGet(path) {
   const e = _cache.get(path);

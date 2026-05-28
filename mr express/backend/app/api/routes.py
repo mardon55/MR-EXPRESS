@@ -20,6 +20,71 @@ from app.database import execute, fetch, fetchrow, fetchval, get_db, get_or_crea
 router = APIRouter(prefix="/api")
 logger = logging.getLogger(__name__)
 
+# ─── Real-time SSE ─────────────────────────────────────────────────────────────
+_sse_queues: list[asyncio.Queue] = []
+
+
+async def _sse_broadcast(event: dict) -> None:
+    data = json.dumps(event)
+    for q in list(_sse_queues):
+        try:
+            q.put_nowait(data)
+        except asyncio.QueueFull:
+            pass
+
+
+async def _poll_version_loop() -> None:
+    """DB version o'zgarganda barcha SSE clientlarga xabar yuboradi."""
+    current_ver = 0
+    while True:
+        await asyncio.sleep(2)
+        try:
+            row = await fetchrow("SELECT version FROM _app_version WHERE id = 1")
+            new_ver = row["version"] if row else 0
+            if new_ver != current_ver:
+                current_ver = new_ver
+                await _sse_broadcast({"type": "refresh", "version": new_ver})
+        except Exception:
+            pass
+
+
+@router.get("/events")
+async def mini_app_sse_events():
+    """Mini app real-time SSE — admin o'zgartirsa avtomatik yangilanadi."""
+    queue: asyncio.Queue = asyncio.Queue(maxsize=20)
+    _sse_queues.append(queue)
+
+    async def generate() -> AsyncIterator[str]:
+        try:
+            yield 'data: {"type":"connected"}\n\n'
+            heartbeat = 0
+            while True:
+                try:
+                    data = await asyncio.wait_for(queue.get(), timeout=20.0)
+                    yield f"data: {data}\n\n"
+                    heartbeat = 0
+                except asyncio.TimeoutError:
+                    heartbeat += 1
+                    if heartbeat >= 2:
+                        yield ": heartbeat\n\n"
+                        heartbeat = 0
+        finally:
+            try:
+                _sse_queues.remove(queue)
+            except ValueError:
+                pass
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
+# ──────────────────────────────────────────────────────────────────────────────
+
 ORDER_STATUS_ACTIVE = "Aktiv"
 # Absolyut yo'l — qaysi papkadan ishga tushirilganidan qat'iy nazar
 UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads" / "stories"

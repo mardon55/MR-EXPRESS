@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -6,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import router
+from app.api.routes import router, _poll_version_loop
 from app.database import close_db, get_db
 
 FRONTEND_DIST = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
@@ -16,7 +17,13 @@ UPLOADS_DIR = Path(__file__).resolve().parent.parent / "uploads"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await get_db()
+    task = asyncio.create_task(_poll_version_loop())
     yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
     await close_db()
 
 

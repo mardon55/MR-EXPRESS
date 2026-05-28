@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from app.core.config import settings
 from app.db import sqlite as db
+from app.db.sqlite import bump_version
 
 router = APIRouter()
 UPLOAD_ROOT = Path(settings.uploads_dir)
@@ -94,6 +95,7 @@ async def create_banner(
         int(is_active),
     )
     item = await _banner_row(banner_id)
+    await bump_version()
     return {"item": item}
 
 
@@ -127,6 +129,7 @@ async def patch_banner(banner_id: int, body: BannerPatch):
             f"UPDATE banners SET {', '.join(fields)} WHERE id = ?",
             *params,
         )
+        await bump_version()
 
     return {"item": await _banner_row(banner_id)}
 
@@ -137,6 +140,7 @@ async def delete_banner(banner_id: int):
     if not row:
         raise HTTPException(404, "Banner topilmadi")
     await db.execute("DELETE FROM banners WHERE id = ?", banner_id)
+    await bump_version()
     return {"ok": True}
 
 
@@ -156,6 +160,7 @@ async def link_banner_products(banner_id: int, body: BannerProductsBody):
                 pid,
             )
 
+    await bump_version()
     return {"item": await _banner_row(banner_id)}
 
 
@@ -172,4 +177,5 @@ async def upload_banner_image(banner_id: int, image: UploadFile = File(...)):
     dest.write_bytes(await image.read())
     url = f"/uploads/{fname}"
     await db.execute("UPDATE banners SET image_url = ? WHERE id = ?", url, banner_id)
+    await bump_version()
     return {"item": await _banner_row(banner_id)}
