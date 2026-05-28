@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import {
   BoldIcon,
   ItalicIcon,
@@ -19,6 +19,12 @@ function exec(cmd: string, value?: string) {
 
 export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
   const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (ref.current && ref.current.innerHTML !== value) {
+      ref.current.innerHTML = value
+    }
+  }, [value])
 
   const sync = () => {
     if (ref.current) onChange(ref.current.innerHTML)
