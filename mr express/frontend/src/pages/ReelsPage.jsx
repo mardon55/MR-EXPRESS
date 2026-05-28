@@ -125,12 +125,24 @@ function ReelSlide({ item, isMuted, onToggleMute, onAddToCart, adding }) {
         </button>
       </div>
 
-      {/* Pastki — ixcham mahsulot nomi va narxi */}
-      <div className="absolute bottom-[calc(env(safe-area-inset-bottom,20px)+4.75rem)] left-3 right-[5rem] z-10">
+      {/* Pastki — Instagram uslubida mahsulot nomi, tavsif va narx */}
+      <div className="absolute bottom-[calc(env(safe-area-inset-bottom,20px)+4.75rem)] left-3 right-[5rem] z-10 space-y-2">
+        {/* Mahsulot nomi va tavsif */}
+        <div className="space-y-1">
+          <p className="text-[14px] font-bold text-white drop-shadow-md">
+            {product?.name || 'Mahsulot'}
+          </p>
+          {product?.description ? (
+            <p className="line-clamp-2 text-[12px] leading-relaxed text-white/80 drop-shadow-sm">
+              {product.description}
+            </p>
+          ) : null}
+        </div>
+        {/* Narx + rasm kartasi */}
         <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-black/50 p-2 backdrop-blur-md">
-          {product?.image_url ? (
+          {(item.thumbnail_url || product?.image_url) ? (
             <img
-              src={resolveUrl(product.image_url)}
+              src={resolveUrl(item.thumbnail_url || product.image_url)}
               alt=""
               className="h-9 w-9 shrink-0 rounded-lg object-cover ring-1 ring-white/20"
             />
@@ -138,12 +150,10 @@ function ReelSlide({ item, isMuted, onToggleMute, onAddToCart, adding }) {
             <div className="h-9 w-9 shrink-0 rounded-lg bg-white/10" />
           )}
           <div className="min-w-0 flex-1">
-            <p className="line-clamp-1 text-[12px] font-semibold text-white">
-              {product?.name || 'Mahsulot'}
-            </p>
-            <p className="text-[12px] font-bold text-emerald-400">
+            <p className="text-[13px] font-bold text-emerald-400">
               {displayPrice.toLocaleString('uz-UZ')} so&apos;m
             </p>
+            <p className="text-[10px] text-white/60">Savatchaga qo&apos;shish uchun bosing</p>
           </div>
         </div>
       </div>

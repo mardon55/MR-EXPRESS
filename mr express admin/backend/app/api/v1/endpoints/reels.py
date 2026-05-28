@@ -19,10 +19,14 @@ ALLOWED_VIDEO_TYPES = {
 }
 
 
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+
+
 def _reel_dict(row: dict) -> dict:
     return {
         "id": row["id"],
         "video_url": row["video_url"],
+        "thumbnail_url": row.get("thumbnail_url"),
         "price": float(row["price"]) if row.get("price") is not None else 0,
         "product_id": row["product_id"],
         "product_name": row.get("product_name"),
@@ -34,7 +38,7 @@ def _reel_dict(row: dict) -> dict:
 async def _reel_item(reel_id: int) -> dict | None:
     row = await db.fetchrow(
         """
-        SELECT r.id, r.video_url, r.price, r.product_id,
+        SELECT r.id, r.video_url, r.thumbnail_url, r.price, r.product_id,
                p.name AS product_name, p.description AS product_description,
                p.image_url AS product_image_url
         FROM reels r
@@ -52,7 +56,7 @@ async def _reel_item(reel_id: int) -> dict | None:
 async def list_reels():
     rows = await db.fetch(
         """
-        SELECT r.id, r.video_url, r.price, r.product_id,
+        SELECT r.id, r.video_url, r.thumbnail_url, r.price, r.product_id,
                p.name AS product_name, p.description AS product_description,
                p.image_url AS product_image_url
         FROM reels r
@@ -69,9 +73,10 @@ async def create_reel(
     product_id: int = Form(...),
     price: float = Form(...),
     video: UploadFile = File(...),
+    thumbnail: UploadFile = File(None),
 ):
     product = await db.fetchrow(
-        "SELECT id, name, price, description FROM products WHERE id = ?",
+        "SELECT id, name, price, description, image_url FROM products WHERE id = ?",
         product_id,
     )
     if not product:
@@ -103,12 +108,25 @@ async def create_reel(
     dest.write_bytes(content)
     video_url = f"/uploads/{fname}"
 
+    thumbnail_url = None
+    if thumbnail and thumbnail.filename:
+        img_ext = Path(thumbnail.filename).suffix.lower()
+        if img_ext not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+            img_ext = ".jpg"
+        img_fname = f"reel_thumb_{uuid4().hex[:10]}{img_ext}"
+        img_dest = UPLOAD_ROOT / img_fname
+        img_content = await thumbnail.read()
+        if img_content:
+            img_dest.write_bytes(img_content)
+            thumbnail_url = f"/uploads/{img_fname}"
+
     reel_id = await db.execute(
         """
-        INSERT INTO reels (video_url, product_id, price, is_active)
-        VALUES (?, ?, ?, 1)
+        INSERT INTO reels (video_url, thumbnail_url, product_id, price, is_active)
+        VALUES (?, ?, ?, ?, 1)
         """,
         video_url,
+        thumbnail_url,
         product_id,
         price,
     )
@@ -117,11 +135,12 @@ async def create_reel(
         "item": {
             "id": reel_id,
             "video_url": video_url,
+            "thumbnail_url": thumbnail_url,
             "price": float(price),
             "product_id": product_id,
             "product_name": product.get("name"),
             "product_description": product.get("description"),
-            "product_image_url": None,
+            "product_image_url": product.get("image_url"),
         }
     }
 

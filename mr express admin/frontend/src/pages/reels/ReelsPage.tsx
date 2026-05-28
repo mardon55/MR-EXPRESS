@@ -62,6 +62,10 @@ export function ReelsPage() {
 
   const [videoPreview, setVideoPreview] = useState<string | null>(null)
 
+  const [thumbFile, setThumbFile] = useState<File | null>(null)
+
+  const [thumbPreview, setThumbPreview] = useState<string | null>(null)
+
   const [saving, setSaving] = useState(false)
 
   const [formError, setFormError] = useState<string | null>(null)
@@ -152,6 +156,20 @@ export function ReelsPage() {
 
 
 
+  useEffect(() => {
+
+    if (!thumbFile) { setThumbPreview(null); return }
+
+    const url = URL.createObjectURL(thumbFile)
+
+    setThumbPreview(url)
+
+    return () => URL.revokeObjectURL(url)
+
+  }, [thumbFile])
+
+
+
   function resetForm() {
 
     setProductId('')
@@ -159,6 +177,8 @@ export function ReelsPage() {
     setPrice('')
 
     setVideoFile(null)
+
+    setThumbFile(null)
 
     setFormError(null)
 
@@ -249,6 +269,8 @@ export function ReelsPage() {
     form.append('price', String(Number(price)))
 
     form.append('video', videoFile)
+
+    if (thumbFile) form.append('thumbnail', thumbFile)
 
 
 
@@ -555,6 +577,53 @@ export function ReelsPage() {
               required
 
             />
+
+          </div>
+
+
+
+          <div>
+
+            <label className="mb-2 block text-sm font-medium text-ink-600 dark:text-ink-300">
+
+              Muqova rasm (ixtiyoriy)
+
+            </label>
+
+            <div className={cn(
+              'relative overflow-hidden rounded-4xl border-2 border-dashed transition-colors',
+              thumbFile ? 'border-brand-500/50 bg-brand-500/10' : 'border-white/25 bg-white/5',
+            )}>
+
+              {thumbPreview ? (
+
+                <div className="relative">
+
+                  <img src={thumbPreview} alt="" className="max-h-40 w-full object-cover" />
+
+                  <button type="button" className="absolute right-3 top-3 rounded-full bg-ink-900/70 px-3 py-1 text-xs text-white" onClick={() => setThumbFile(null)}>
+
+                    Boshqa rasm
+
+                  </button>
+
+                </div>
+
+              ) : (
+
+                <label className="flex cursor-pointer flex-col items-center justify-center gap-2 px-6 py-6 text-center">
+
+                  <span className="text-sm font-medium text-ink-600 dark:text-ink-300">Muqova rasmni tanlang</span>
+
+                  <span className="text-xs text-ink-500">JPG, PNG, WebP</span>
+
+                  <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => setThumbFile(e.target.files?.[0] ?? null)} />
+
+                </label>
+
+              )}
+
+            </div>
 
           </div>
 

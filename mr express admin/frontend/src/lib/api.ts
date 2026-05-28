@@ -107,6 +107,7 @@ export interface DiscountRow {
 export interface ReelRow {
   id: number
   video_url: string
+  thumbnail_url: string | null
   price: number
   product_id: number | null
   product_name: string | null

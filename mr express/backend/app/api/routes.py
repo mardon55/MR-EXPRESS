@@ -323,6 +323,7 @@ def _reel_public(row) -> dict:
     return {
         "id": row["id"],
         "video_url": row["video_url"],
+        "thumbnail_url": row.get("thumbnail_url"),
         "price": price,
         "product": {
             "id": row["product_id"],
@@ -338,7 +339,7 @@ def _reel_public(row) -> dict:
 async def list_reels():
     rows = await fetch(
         """
-        SELECT r.id, r.video_url, r.price, r.product_id,
+        SELECT r.id, r.video_url, r.thumbnail_url, r.price, r.product_id,
                p.name AS product_name, p.description AS product_description,
                p.image_url AS product_image_url, p.price AS product_price
         FROM reels r
