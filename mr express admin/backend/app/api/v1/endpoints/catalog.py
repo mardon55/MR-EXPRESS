@@ -14,7 +14,6 @@ UPLOAD_ROOT = Path(settings.uploads_dir)
 
 @router.get("/categories")
 async def list_categories():
-    """Ierarxik kategoriyalar — Telegram bot SQLite bazasidan."""
     rows = await db.fetch(
         """
         SELECT id, name, slug, icon, sort_order, parent_id
@@ -69,6 +68,7 @@ async def list_products(
         limit,
         offset,
     )
+    import json
     for r in rows:
         imgs = await db.fetch(
             "SELECT image_url, sort_order FROM product_images WHERE product_id = ? ORDER BY sort_order",
@@ -78,6 +78,11 @@ async def list_products(
         r["price"] = float(r["price"])
         if r.get("old_price"):
             r["old_price"] = float(r["old_price"])
+        if r.get("attributes"):
+            try:
+                r["attributes"] = json.loads(r["attributes"])
+            except Exception:
+                r["attributes"] = None
 
     total = await db.fetchval(f"SELECT COUNT(*) FROM products p WHERE {where}", *params)
     return {"items": rows, "total": total or 0, "page": page, "limit": limit}
@@ -92,6 +97,7 @@ async def create_product(
     category_id: int = Form(...),
     subcategory_id: int | None = Form(None),
     old_price: float | None = Form(None),
+    attributes: str | None = Form(None),
     images: list[UploadFile] | None = File(None),
 ):
     image_files = images or []
@@ -102,16 +108,17 @@ async def create_product(
 
     product_id = await db.execute(
         """
-        INSERT INTO products (category_id, name, description, price, old_price, stock, image_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO products (category_id, name, description, price, old_price, stock, image_url, attributes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         cat_id,
         name.strip(),
         description,
         price,
-        old_price,
+        old_price if old_price and old_price > 0 else None,
         stock,
         None,
+        attributes,
     )
 
     UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)

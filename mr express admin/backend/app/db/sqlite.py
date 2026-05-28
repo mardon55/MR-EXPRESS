@@ -150,6 +150,11 @@ async def _migrate(db: aiosqlite.Connection) -> None:
             "ALTER TABLE users ADD COLUMN is_blocked INTEGER DEFAULT 0"
         )
 
+    cur = await db.execute("PRAGMA table_info(products)")
+    product_cols = {row[1] for row in await cur.fetchall()}
+    if "attributes" not in product_cols:
+        await db.execute("ALTER TABLE products ADD COLUMN attributes TEXT")
+
     cur = await db.execute("PRAGMA table_info(reels)")
     reel_cols = {row[1] for row in await cur.fetchall()}
     if reel_cols and "price" not in reel_cols:

@@ -108,6 +108,13 @@ async def _db_user_id(telegram_id: int) -> int:
 
 
 def _product_row(r) -> dict:
+    import json as _json
+    attrs = None
+    if r.get("attributes"):
+        try:
+            attrs = _json.loads(r["attributes"])
+        except Exception:
+            attrs = None
     return {
         "id": r["id"],
         "category_id": r["category_id"],
@@ -119,6 +126,7 @@ def _product_row(r) -> dict:
         "stock": r["stock"],
         "is_featured": bool(r["is_featured"]),
         "is_discount": bool(r["is_discount"]),
+        "attributes": attrs,
     }
 
 
@@ -296,7 +304,15 @@ async def product_detail(product_id: int):
     row = await fetchrow("SELECT * FROM products WHERE id = ?", product_id)
     if not row:
         raise HTTPException(404, "Product not found")
-    return _product_row(row)
+    result = _product_row(row)
+    imgs = await fetch(
+        "SELECT image_url FROM product_images WHERE product_id = ? ORDER BY sort_order",
+        product_id,
+    )
+    result["images"] = [i["image_url"] for i in imgs] if imgs else (
+        [row["image_url"]] if row.get("image_url") else []
+    )
+    return result
 
 
 def _reel_public(row) -> dict:
