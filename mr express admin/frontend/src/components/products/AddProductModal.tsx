@@ -154,11 +154,51 @@ const CATEGORY_FIELDS: Record<number, CatField[]> = {
     { key: 'upholstery', label: 'Mebel qoplamasi (Divan/Stullar)', type: 'select', options: ['Velvet', 'Koja (Charm)', 'Jakkard', 'Velur', 'Ekokoja', "Yo'q"] },
     { key: 'dimensions', label: "O'lchamlari (Bo'y × Eni × Chuqurligi)", type: 'text', placeholder: '200 × 90 × 80 sm...' },
   ],
+  // ── Go'zallik parent (fallback) ──
   4: [
     { key: 'brand', label: 'Brend', type: 'text', placeholder: "L'Oreal, MAC, Nivea, Chanel..." },
     { key: 'volume', label: 'Hajm/Miqdor', type: 'text', placeholder: '50ml, 100ml, 200g...' },
     { key: 'skin_type', label: 'Teri turi', type: 'multiselect', options: ['Barcha teri', 'Quruq', "Yog'li", 'Normal', 'Aralash', 'Sezgir'] },
-    { key: 'colors', label: 'Soya/Rang', type: 'multiselect', options: ['Nudе', 'Qizil', 'Pushti', 'Berry', 'Coral', "Qo'ng'ir", 'Shaffof'] },
+  ],
+  // ── Yuz va tana parvarishi (30) ──
+  30: [
+    { key: 'type', label: 'Turi', type: 'select', options: ['Krem', 'Serum (Sivorotka)', 'Tonik', 'Penka / Gel (Yuvinish uchun)', 'Skrab', 'Niqob (Maska)', 'Losyon', 'Boshqa'] },
+    { key: 'skin_type', label: 'Teri turi', type: 'multiselect', options: ['Quruq teri', "Yog'li teri", 'Kombinatsiyalangan (Aralash)', 'Nozik (Sezgir)', 'Oddiy teri', 'Barcha teri turlari'] },
+    { key: 'purpose', label: 'Vazifasi', type: 'multiselect', options: ['Namlantirish', 'Ajinlarga qarshi (Anti-age)', 'Oqartirish', 'Akne / Husnbuzarga qarshi', 'Quyoshdan himoya (SPF)', 'Tozalovchi'] },
+    { key: 'volume', label: 'Hajmi', type: 'select', options: ['15 ml', '30 ml', '50 ml', '100 ml', '150 ml', '200 ml', '500 ml'] },
+    { key: 'brand', label: 'Brend', type: 'text', placeholder: 'G9skin, Cosrx, The Ordinary, Nivea, Garnier...' },
+  ],
+  // ── Dekorativ kosmetika / Makiyaj (31) ──
+  31: [
+    { key: 'type', label: 'Turi', type: 'select', options: ['Tonal krem (Tonalniy)', 'Pomada / Lab gili', 'Tush (Mascara)', 'Podvodka', 'Ten (Ko\'z uchun)', 'Pudra', 'Xaylayter', 'Boshqa'] },
+    { key: 'tone', label: 'Tonal krem / Pudra rangi (Ton)', type: 'select', options: ['№21 (Och)', '№23 (Tabiiy bej)', '№25 (To\'q bej)', '№27', '№29 (To\'q)', 'Universal'] },
+    { key: 'lipstick_type', label: 'Pomada turi', type: 'select', options: ['Matoviy (Matte)', 'Gilyantsevaya (Yaltiroq)', 'Lab parvarishlovchi (Balzam)', 'Satin'] },
+    { key: 'feature', label: 'Xususiyati', type: 'multiselect', options: ['Suvga chidamli (Waterproof)', 'Uzoq muddat saqlanuvchi (Long-lasting)', 'SPF himoya', 'Gipoallergen'] },
+    { key: 'brand', label: 'Brend', type: 'text', placeholder: "Maybelline, L'Oreal, MAC, NYX, Kiko, Vivienne Sabo..." },
+  ],
+  // ── Soch parvarishi (32) ──
+  32: [
+    { key: 'type', label: 'Turi', type: 'select', options: ['Shampun', 'Balzam / Konditsioner', 'Maska (Niqob)', "Soch moyi (Maslo / Serum)", 'Sprey', "Soch bo'yog'i", 'Boshqa'] },
+    { key: 'hair_type', label: 'Soch turi', type: 'multiselect', options: ['Quruq va shikastlangan', "Yog'li", "Bo'yalgan sochlar", "To'kilishga moyil", "Qazg'oqli (Sevoreya)", 'Barcha soch turlari'] },
+    { key: 'feature', label: 'Xususiyati', type: 'multiselect', options: ['Sulfatsiz (Sulfate-free)', 'Keratinli', 'Organik', 'Hajm beruvchi (Volume)', 'Tiklash (Rejeneration)'] },
+    { key: 'volume', label: 'Hajmi', type: 'select', options: ['100 ml', '150 ml', '250 ml', '400 ml', '500 ml', '1 litr'] },
+    { key: 'brand', label: 'Brend', type: 'text', placeholder: 'CP-1, Estel, Londa, Elseve, Syoss, Clear, Shiseido...' },
+  ],
+  // ── Parfyumeriya / Atorlar (33) ──
+  33: [
+    { key: 'type', label: 'Turi', type: 'select', options: ['Ator (Duxi / Parfum)', 'Parfyum suvi (Eau de Parfum)', 'Tualet suvi (Eau de Toilette)', 'Tana spreyi (Bodyspray)', "Yog'li ator"] },
+    { key: 'gender', label: 'Jinsi', type: 'select', options: ['Erkaklar uchun (Male)', 'Ayollar uchun (Female)', 'Uniseks (Universal)'] },
+    { key: 'scent_group', label: 'Ifor guruhi (Shleyf)', type: 'select', options: ['Shirin (Sladkiy)', 'Achchiq (Pryanyy)', 'Svejiy (Dengiz / Muz)', 'Sitrusli (Lemon/Apelsin)', "Yog'ochli (Drevniy)", 'Guldor (Floral)'] },
+    { key: 'volume', label: 'Hajmi', type: 'select', options: ['3 ml (Yog\'li ator)', '10 ml', '30 ml', '50 ml', '100 ml', '200 ml'] },
+    { key: 'brand', label: 'Brend', type: 'text', placeholder: 'Chanel, Dior, Creed, Tom Ford, Versace, Zara, Ajmal...' },
+  ],
+  // ── Manikyur va pedikyur (34) ──
+  34: [
+    { key: 'type', label: 'Turi', type: 'select', options: ['Gel-lak (Shellak)', 'Oddiy lak', 'Lak qurituvchi LED lampa', 'Apparat (Frenzer)', "Piločka (Arra)", 'Praymer', 'Top / Baza', 'Boshqa'] },
+    { key: 'color', label: 'Rangi / Nomeri', type: 'text', placeholder: 'Qizil, Neon, Yaltiroq, Fransuz manikyuri...' },
+    { key: 'volume', label: 'Hajmi', type: 'select', options: ['5 ml', '8 ml', '10 ml', '12 ml', '15 ml'] },
+    { key: 'safety', label: 'Zararsizligi', type: 'multiselect', options: ['9-Free', 'Gipoallergen (Allergiya bermaydigan)', 'Vegan', 'Organik'] },
+    { key: 'brand', label: 'Brend', type: 'text', placeholder: 'Kodi, Uno, Oxxi, Beautix, Nail Apex...' },
   ],
   5: [
     { key: 'age_range', label: 'Yosh chegarasi', type: 'select', options: ['0-1 yosh', '1-3 yosh', '3-6 yosh', '6-12 yosh', '12+ yosh'] },
