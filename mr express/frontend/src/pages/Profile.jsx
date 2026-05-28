@@ -441,89 +441,15 @@ function GroupBuyingView({ onBack, onCountChange }) {
 
   return (
     <SubPage title="Guruhli xaridlarim" onBack={onBack}>
-      <p className="mb-2.5 text-xs text-theme-muted">Do&apos;stlar bilan birgalikda arzonroq xarid qiling</p>
-
-      <div className="mb-2.5 flex gap-1 rounded-xl border border-theme bg-theme-card p-1 shadow-theme-sm">
-        <button
-          type="button"
-          onClick={() => setTab('active')}
-          className={`press-fluid flex-1 rounded-lg py-2 text-[12px] font-semibold transition-colors ${
-            tab === 'active' ? 'btn-theme-accent shadow-theme-sm' : 'text-theme-muted'
-          }`}
-        >
-          Aktiv guruhlar
-          {activeGroups.length > 0 && (
-            <span className="ml-1 rounded-full bg-white/20 px-1.5 text-[10px]">
-              {activeGroups.length}
-            </span>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('completed')}
-          className={`press-fluid flex-1 rounded-lg py-2 text-[12px] font-semibold transition-colors ${
-            tab === 'completed' ? 'btn-theme-accent shadow-theme-sm' : 'text-theme-muted'
-          }`}
-        >
-          Tugallangan
-        </button>
+      <div className="flex h-full flex-col items-center justify-center py-16 text-center">
+        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-theme-icon shadow-theme-sm">
+          <span className="text-4xl">🔒</span>
+        </div>
+        <p className="mt-5 text-[17px] font-bold text-theme">Bu bo&apos;lim hozircha muzlatilgan</p>
+        <p className="mt-2 max-w-[240px] text-[13px] leading-relaxed text-theme-muted">
+          Yaqin orada ishga tushiriladi. Kuting!
+        </p>
       </div>
-
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-theme-accent border-t-transparent" />
-        </div>
-      )}
-
-      {!loading && error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-center text-xs text-red-600">
-          {error}
-        </div>
-      )}
-
-      {!loading && !error && tab === 'active' && activeGroups.length === 0 && (
-        <div className="rounded-xl border border-theme bg-theme-card px-4 py-10 text-center shadow-theme-sm">
-          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-theme-icon">
-            <Users className="h-6 w-6 text-theme-muted" strokeWidth={2} />
-          </span>
-          <p className="mt-3 text-[15px] font-semibold text-theme">Hali guruh yo&apos;q</p>
-          <p className="mt-2 text-xs leading-relaxed text-theme-muted">
-            Admin yangi guruhli xarid qo&apos;shganda shu yerda ko&apos;rinadi.
-          </p>
-        </div>
-      )}
-
-      {!loading && !error && tab === 'completed' && completedGroups.length === 0 && (
-        <div className="rounded-xl border border-theme bg-theme-card px-4 py-10 text-center shadow-theme-sm">
-          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-theme-icon">
-            <CheckCircle2 className="h-6 w-6 text-theme-muted" strokeWidth={2} />
-          </span>
-          <p className="mt-3 text-[15px] font-semibold text-theme">Tugallangan xarid yo&apos;q</p>
-          <p className="mt-2 text-xs leading-relaxed text-theme-muted">
-            Muvaffaqiyatli yakunlangan guruhli xaridlar shu yerda ko&apos;rinadi.
-          </p>
-        </div>
-      )}
-
-      {!loading && !error && (
-        <ul className="space-y-2">
-          {tab === 'active' && activeGroups.map((item) => (
-            <li key={item.id}>
-              <ActiveGroupCard
-                item={item}
-                onJoin={handleJoin}
-                onLeave={handleLeave}
-                joiningId={joiningId}
-              />
-            </li>
-          ))}
-          {tab === 'completed' && completedGroups.map((item) => (
-            <li key={item.id}>
-              <CompletedGroupCard item={item} />
-            </li>
-          ))}
-        </ul>
-      )}
     </SubPage>
   );
 }

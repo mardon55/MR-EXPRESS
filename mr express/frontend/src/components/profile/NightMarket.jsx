@@ -221,126 +221,19 @@ function NightProductCard({ mahsulot, faol, onBuy, buyingId }) {
 // ── Asosiy komponent ─────────────────────────────────────────────────────────
 
 export default function NightMarket({ onBack }) {
-  const { haptic, tg } = useTelegram();
-  const { faol, ochilishMatn, yopilishMatn } = useNightMarketClock();
-  const [mahsulotlar, setMahsulotlar] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [buyingId, setBuyingId] = useState(null);
-
-  const loadProducts = useCallback(async () => {
-    try {
-      const res = await fetch('/api/night-market');
-      const data = await res.json();
-      setMahsulotlar(Array.isArray(data) ? data : []);
-    } catch {
-      setMahsulotlar([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadProducts();
-    const id = setInterval(loadProducts, 10000);
-    return () => clearInterval(id);
-  }, [loadProducts]);
-
-  const handleBuy = useCallback(async (mahsulot) => {
-    if (!isNightMarketActive()) {
-      tg?.showAlert?.('Tungi bozor hozir yopiq. Soat 22:00 da qayta ochiladi.');
-      return;
-    }
-    setBuyingId(mahsulot.id);
-    try {
-      const res = await api.buyNightMarketItem(mahsulot.id);
-      haptic?.('success');
-      const nightPrice = res?.price ?? Math.round(mahsulot.day_price * (1 - mahsulot.night_discount_percent / 100));
-      tg?.showAlert?.(
-        `✅ Buyurtma qabul qilindi!\n${mahsulot.name}\n${nightPrice.toLocaleString('uz-UZ')} so'm\n\nYaqin orada yetkaziladi 🚚`
-      );
-      setMahsulotlar((prev) =>
-        prev.map((p) =>
-          p.id === mahsulot.id && p.sold_count < p.total_stock
-            ? { ...p, sold_count: p.sold_count + 1 }
-            : p
-        )
-      );
-    } catch (err) {
-      haptic?.('light');
-      const msg = err?.message || String(err);
-      if (msg.includes('tugab')) {
-        tg?.showAlert?.('Kechirasiz, bu mahsulot tugab ketdi!');
-      } else {
-        tg?.showAlert?.(`Xato: ${msg}`);
-      }
-    } finally {
-      setBuyingId(null);
-    }
-  }, [haptic, tg]);
-
   return (
-    <div className="flex h-full flex-col" style={{ backgroundColor: faol ? '#0B0C10' : '#111318' }}>
+    <div className="flex h-full flex-col bg-theme-bg">
       <div style={{ paddingTop: '50px' }} className="shrink-0">
         <PageHeader title="Tungi bozor" onBack={onBack} showLabel />
       </div>
-
-      <div className="scroll-area min-h-0 flex-1 px-4 pb-6 pt-2">
-        <header className="mb-3 text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl border"
-            style={{
-              borderColor: faol ? 'rgba(0,240,255,0.4)' : 'rgba(148,163,184,0.3)',
-              background: faol ? 'rgba(124,58,237,0.15)' : 'rgba(30,34,48,0.8)',
-              boxShadow: faol ? '0 0 24px rgba(124,58,237,0.35)' : 'none',
-            }}>
-            {faol
-              ? <Moon className="h-6 w-6" style={{ color: '#00F0FF', filter: 'drop-shadow(0 0 8px #00F0FF)' }} strokeWidth={2} />
-              : <Sun className="h-6 w-6 text-[#94A3B8]" strokeWidth={2} />}
-          </div>
-          <h2 className="text-[18px] font-bold"
-            style={{
-              color: faol ? '#E8ECFF' : '#94A3B8',
-              textShadow: faol ? '0 0 20px rgba(255,0,127,0.5),0 0 12px rgba(0,240,255,0.35)' : 'none',
-            }}>
-            {faol ? 'Night Flash Sales' : 'Tungi bozor yopiq'}
-          </h2>
-          <p className="mt-1 text-[11px] text-[#8B9BB4]">
-            {faol ? 'Cheklangan zaxira · tungi chegirma' : "Bugungi tunda chegirmadagi tovarlar (oldindan ko'rish)"}
-          </p>
-          <span className="mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase"
-            style={faol
-              ? { background: 'rgba(255,0,127,0.15)', color: '#FF007F', boxShadow: '0 0 12px rgba(255,0,127,0.35)' }
-              : { background: 'rgba(100,116,139,0.2)', color: '#94A3B8' }}>
-            {faol ? <><Flame className="h-3 w-3" strokeWidth={2.5} />Faol</> : <><Moon className="h-3 w-3" strokeWidth={2.25} />Yopiq</>}
-          </span>
-        </header>
-
-        <CountdownBanner faol={faol} ochilishMatn={ochilishMatn} yopilishMatn={yopilishMatn} />
-
-        <p className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-wider"
-          style={{ color: faol ? '#A78BFA' : '#64748B' }}>
-          {faol ? 'Hozir sotib olish mumkin' : 'Bugungi tungi tovarlar'}
+      <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-theme-icon shadow-theme-sm">
+          <span className="text-4xl">🔒</span>
+        </div>
+        <p className="mt-5 text-[17px] font-bold text-theme">Bu bo&apos;lim hozircha muzlatilgan</p>
+        <p className="mt-2 max-w-[240px] text-[13px] leading-relaxed text-theme-muted">
+          Yaqin orada ishga tushiriladi. Kuting!
         </p>
-
-        {loading ? (
-          <div className="flex justify-center py-10">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#00F0FF] border-t-transparent" />
-          </div>
-        ) : mahsulotlar.length === 0 ? (
-          <div className="rounded-2xl border px-4 py-10 text-center"
-            style={{ borderColor: 'rgba(100,116,139,0.3)', background: 'rgba(30,34,48,0.6)' }}>
-            <Moon className="mx-auto h-10 w-10 text-[#64748B]" strokeWidth={1.5} />
-            <p className="mt-3 text-[14px] font-semibold text-[#94A3B8]">Hozircha mahsulot yo&apos;q</p>
-            <p className="mt-1 text-[11px] text-[#64748B]">Admin tez orada mahsulot qo&apos;shadi</p>
-          </div>
-        ) : (
-          <ul className="space-y-3">
-            {mahsulotlar.map((m) => (
-              <li key={m.id}>
-                <NightProductCard mahsulot={m} faol={faol} onBuy={handleBuy} buyingId={buyingId} />
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
     </div>
   );
