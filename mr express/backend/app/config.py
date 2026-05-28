@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     )
 
     bot_token: str = ""
-    webapp_url: str = "https://543c8039-3a43-4749-afb5-891bd98f2748-00-21eqn5rvuhafb.sisko.replit.dev/shop/"
+    webapp_url: str = "https://271e8beb-c452-4eb7-87fa-fc48bf7cac87-00-15io17ecv1mj6.sisko.replit.dev/shop/"
     sqlite_path: str = "data/mrexpress.db"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
