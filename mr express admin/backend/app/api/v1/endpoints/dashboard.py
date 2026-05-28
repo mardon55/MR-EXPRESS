@@ -42,6 +42,31 @@ async def get_dashboard_stats():
     }
 
 
+@router.get("/revenue-chart")
+async def get_revenue_chart(days: int = 30):
+    """So'nggi N kunlik daromad grafigi uchun."""
+    rows = await db.fetch(
+        f"""
+        SELECT
+            DATE(created_at, 'localtime') AS day,
+            COALESCE(SUM(total), 0)       AS revenue,
+            COUNT(*)                       AS orders
+        FROM orders
+        WHERE DATE(created_at, 'localtime') >= DATE('now', '-{max(1, min(days, 365))} days', 'localtime')
+        GROUP BY day
+        ORDER BY day ASC
+        """
+    )
+    return [
+        {
+            "day": r["day"],
+            "revenue": float(r["revenue"]),
+            "orders": int(r["orders"]),
+        }
+        for r in rows
+    ]
+
+
 @router.get("/recent-orders")
 async def get_recent_orders(limit: int = 8):
     rows = await db.fetch(

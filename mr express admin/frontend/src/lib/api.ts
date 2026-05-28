@@ -165,6 +165,11 @@ export const api = {
 
   getDashboardStats: () => apiClient.get<DashboardStats>('/dashboard/stats'),
 
+  getRevenueChart: (days = 30) =>
+    apiClient.get<{ day: string; revenue: number; orders: number }[]>(
+      `/dashboard/revenue-chart?days=${days}`,
+    ),
+
   getRecentOrders: () =>
     apiClient.get<{
       items: { id: string; customer: string; amount: number; status: string }[]
