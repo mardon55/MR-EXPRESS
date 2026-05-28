@@ -26,12 +26,47 @@ interface CatField {
 }
 
 const CATEGORY_FIELDS: Record<number, CatField[]> = {
+  // ── Elektronika parent (fallback) ──
   1: [
     { key: 'brand', label: 'Brend', type: 'text', placeholder: 'Apple, Samsung, Xiaomi...' },
     { key: 'colors', label: 'Ranglar', type: 'multiselect', options: ['Qora', 'Oq', 'Kumush', "Ko'k", 'Qizil', 'Yashil', 'Sariq', 'Oltin'] },
-    { key: 'storage', label: 'Xotira', type: 'multiselect', options: ['32GB', '64GB', '128GB', '256GB', '512GB', '1TB'] },
-    { key: 'ram', label: 'RAM', type: 'multiselect', options: ['2GB', '4GB', '6GB', '8GB', '12GB', '16GB'] },
-    { key: 'warranty', label: 'Kafolat', type: 'select', options: ['Kafolatsiz', '3 oy', '6 oy', '1 yil', '2 yil'] },
+    { key: 'warranty', label: 'Kafolat', type: 'select', options: ['Kafolatsiz', '1 oy', '6 oy', '1 yil', '2 yil'] },
+  ],
+  // ── Smartfonlar (16) ──
+  16: [
+    { key: 'brand', label: 'Brend', type: 'text', placeholder: 'Apple, Samsung, Xiaomi, Vivo, Realme...' },
+    { key: 'colors', label: 'Ranglar', type: 'multiselect', options: ['Qora', 'Oq', 'Kumush', 'Oltin', "Ko'k", 'Yashil', 'Qizil', 'Binafsha'] },
+    { key: 'storage', label: 'Xotira (ROM)', type: 'multiselect', options: ['64GB', '128GB', '256GB', '512GB', '1TB'] },
+    { key: 'ram', label: 'Tezkor xotira (RAM)', type: 'multiselect', options: ['4GB', '6GB', '8GB', '12GB', '16GB'] },
+    { key: 'warranty', label: 'Kafolat', type: 'select', options: ['Kafolatsiz', '1 oy', '6 oy', '1 yil', '2 yil'] },
+  ],
+  // ── Aksessuarlar (17) ──
+  17: [
+    { key: 'brand', label: 'Brend', type: 'text', placeholder: 'Baseus, Joyroom, Xiaomi, Borofone, Hoco...' },
+    { key: 'type', label: 'Turi', type: 'multiselect', options: ['Avtomobil ushlagichi (Derjatel)', 'Monopod (Sander)', 'Halqa (Ring)', 'Quloqchin', 'Dinamik'] },
+    { key: 'connection', label: 'Ulanish turi', type: 'select', options: ['Bluetooth', 'Simli', 'Wireless (Radio)', 'USB', 'Type-C'] },
+    { key: 'colors', label: 'Ranglar', type: 'multiselect', options: ['Qora', 'Oq', 'Kulrang', 'Kumush', 'Qizil'] },
+  ],
+  // ── G'iloflar / Chexollar (18) ──
+  18: [
+    { key: 'compatible_models', label: 'Mos modellar', type: 'multiselect', options: ['iPhone 11', 'iPhone 13', 'iPhone 14', 'iPhone 14 Pro Max', 'iPhone 15', 'iPhone 15 Pro', 'Samsung S24', 'Samsung A55', 'Redmi Note 13'] },
+    { key: 'material', label: 'Material turi', type: 'select', options: ['Silikon', 'Charm (Koja)', 'Plastik', 'Shaffof (Akril)', 'Rezina'] },
+    { key: 'colors', label: 'Ranglar', type: 'multiselect', options: ['Qora', 'Shaffof', 'Pushti', "To'q ko'k", 'Yashil', 'Oq', 'Kulrang'] },
+    { key: 'type', label: 'Turi', type: 'select', options: ['Oddiy chexol', 'Kitobcha (Kojaniy)', "Cho'ntakli (Karta uchun)", 'MagSafe qo\'llaydigan'] },
+  ],
+  // ── Himoya oynalari (19) ──
+  19: [
+    { key: 'compatible_models', label: 'Mos modellar', type: 'multiselect', options: ['iPhone 11', 'iPhone 13', 'iPhone 14', 'iPhone 14 Pro Max', 'iPhone 15', 'iPhone 15 Pro', 'Samsung S24', 'Samsung A55', 'Redmi Note 13'] },
+    { key: 'glass_type', label: 'Shisha turi', type: 'select', options: ['2.5D', '3D', '9D', 'Keramika (Yshilmaydigan)', 'Matoviy (Anti-blik)', 'Anti-shpion'] },
+    { key: 'thickness', label: 'Qalinligi / Mustahkamligi', type: 'select', options: ['0.33mm', '9H ultra', '0.26mm', '11H'] },
+  ],
+  // ── Quvvatlagichlar (20) ──
+  20: [
+    { key: 'brand', label: 'Brend', type: 'text', placeholder: 'Apple, Anker, Baseus, Hoco, Samsung...' },
+    { key: 'type', label: 'Turi', type: 'select', options: ['Adapter (Blok)', 'Kabel (Shnur)', 'Simsiz quvvatlagich (Wireless)', 'Powerbank'] },
+    { key: 'wattage', label: 'Quvvat tezligi (Vatt)', type: 'select', options: ['5W', '18W', '20W', '33W', '65W', '100W'] },
+    { key: 'port_type', label: 'Port turi', type: 'multiselect', options: ['USB-A', 'Type-C', 'Lightning (iPhone uchun)', 'Micro-USB'] },
+    { key: 'cable_length', label: 'Kabel uzunligi', type: 'select', options: ['1 metr', '1.5 metr', '2 metr', '3 metr'] },
   ],
   2: [
     { key: 'sizes', label: "O'lchamlar", type: 'multiselect', options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45'] },
@@ -164,7 +199,7 @@ export function AddProductModal({ open, onClose, onCreated, editProduct }: AddPr
 
   const isEditing = !!editProduct
 
-  const activeCatId = (categoryId as number) || null
+  const activeCatId = (subcategoryId as number) || (categoryId as number) || null
   const catFields: CatField[] = activeCatId ? (CATEGORY_FIELDS[activeCatId] ?? []) : []
 
   useEffect(() => {
@@ -213,7 +248,7 @@ export function AddProductModal({ open, onClose, onCreated, editProduct }: AddPr
 
   useEffect(() => {
     if (!isEditing) setAttrValues({})
-  }, [categoryId, isEditing])
+  }, [categoryId, subcategoryId, isEditing])
 
   function reset() {
     setName('')
