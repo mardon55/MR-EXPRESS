@@ -12,7 +12,7 @@ import {
   Timer,
   Users,
 } from 'lucide-react';
-import { api } from '../api';
+import { api, cacheInvalidate } from '../api';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { useTelegram } from '../hooks/useTelegram';
@@ -639,6 +639,8 @@ function OrdersView({ onBack }) {
   }
 
   useEffect(() => {
+    // Har safar bu bo'lim ochilganda keshni tozalab yangi ma'lumot olamiz
+    cacheInvalidate('/api/orders', '/api/profile');
     api.getOrders()
       .then((data) => {
         const rows = Array.isArray(data) ? data : [];
@@ -1102,8 +1104,12 @@ export default function Profile() {
   }, [section]);
 
   useEffect(() => {
-    api.profile().then(setProfile).catch(console.error);
-  }, []);
+    // Har safar asosiy menyuga qaytganda profil keshini tozalab yangilash
+    if (!section) {
+      cacheInvalidate('/api/profile');
+      api.profile().then(setProfile).catch(console.error);
+    }
+  }, [section]);
 
   /** Savatdan buyurtma tasdiqlangach — avtomatik "Buyurtmalarim" bo'limiga ochish */
   useEffect(() => {

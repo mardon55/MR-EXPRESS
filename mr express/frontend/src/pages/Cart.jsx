@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, CreditCard, Copy, Check } from 'lucide-react';
 import WebApp from '@twa-dev/sdk';
-import { api, formatPrice } from '../api';
+import { api, formatPrice, cacheInvalidate } from '../api';
 import { resolveUrl } from '../utils/resolveUrl';
 import { useApp } from '../context/AppContext';
 import { useAutoRefresh } from '../hooks/useAutoRefresh';
@@ -230,6 +230,8 @@ function CheckoutModal({
       );
       const order = await submitOrderPayload(payload);
       haptic('success');
+      // Savatcha, buyurtmalar va profil keshini tozalash — eski ma'lumot ko'rinmasin
+      cacheInvalidate('/api/cart', '/api/orders', '/api/profile');
       onClose();
       tg?.showAlert?.(`✅ Buyurtma #${order.order_id} qabul qilindi!\nTo'lovni amalga oshirgandan so'ng operator siz bilan bog'lanadi.`);
       onOrderDone();
