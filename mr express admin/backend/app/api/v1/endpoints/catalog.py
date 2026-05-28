@@ -44,6 +44,7 @@ async def list_products(
     page: int = 1,
     limit: int = 50,
     category_id: int | None = None,
+    is_discount: int | None = None,
 ):
     page = max(1, page)
     limit = min(max(1, limit), 500)
@@ -53,6 +54,9 @@ async def list_products(
     if category_id:
         conditions.append("p.category_id = ?")
         params.append(category_id)
+    if is_discount is not None:
+        conditions.append("p.is_discount = ?")
+        params.append(is_discount)
 
     where = " AND ".join(conditions)
     rows = await db.fetch(

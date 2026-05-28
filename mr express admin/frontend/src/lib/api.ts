@@ -225,8 +225,20 @@ export const api = {
 
   getDiscounts: () => apiClient.get<{ items: DiscountRow[]; total: number }>('/discounts'),
 
+  getDiscountProducts: () =>
+    apiClient.get<{ items: ProductRow[]; total: number }>('/catalog/products', {
+      params: { is_discount: 1, limit: 100 },
+    }),
+
   createDiscount: (body: Omit<DiscountRow, 'id' | 'scope_name' | 'created_at'>) =>
     apiClient.post<{ item: DiscountRow }>('/discounts', body),
+
+  createDiscountProduct: (formData: FormData) =>
+    apiClient.post<{ product_id: number; discount_id: number; images: string[] }>(
+      '/discounts/product',
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    ),
 
   patchDiscount: (id: number, body: Partial<DiscountRow>) =>
     apiClient.patch<{ item: DiscountRow }>(`/discounts/${id}`, body),

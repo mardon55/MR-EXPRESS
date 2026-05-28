@@ -1,13 +1,18 @@
 import json
 from datetime import datetime
+from pathlib import Path
+from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
+from app.core.config import settings
 from app.db import sqlite as db
 from app.db.sqlite import bump_version
 
 router = APIRouter()
+
+UPLOAD_ROOT = Path(settings.uploads_dir)
 
 
 class DiscountBody(BaseModel):
@@ -149,6 +154,79 @@ def _discount_item(row: dict) -> dict:
         "is_active": bool(row.get("is_active", 1)),
         "created_at": row.get("created_at"),
     }
+
+
+@router.post("/product")
+async def create_discount_product(
+    name: str = Form(...),
+    description: str = Form(""),
+    old_price: float = Form(...),
+    price: float = Form(...),
+    category_id: int = Form(...),
+    subcategory_id: int | None = Form(None),
+    stock: int = Form(100),
+    valid_to: str | None = Form(None),
+    images: list[UploadFile] | None = File(None),
+):
+    cat_id = subcategory_id or category_id
+    cat = await db.fetchrow("SELECT id FROM categories WHERE id = ?", cat_id)
+    if not cat:
+        raise HTTPException(400, "Kategoriya topilmadi")
+
+    percent = round((1 - price / old_price) * 100, 2) if old_price > price else 0.0
+
+    product_id = await db.execute(
+        """
+        INSERT INTO products (category_id, name, description, price, old_price, stock, image_url, is_discount)
+        VALUES (?, ?, ?, ?, ?, ?, NULL, 1)
+        """,
+        cat_id,
+        name.strip(),
+        description,
+        price,
+        old_price,
+        stock,
+    )
+
+    UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
+    saved_urls: list[str] = []
+    for i, img in enumerate((images or [])[:6]):
+        if not img.filename:
+            continue
+        ext = Path(img.filename).suffix.lower() or ".jpg"
+        fname = f"dp_{product_id}_{uuid4().hex[:8]}{ext}"
+        dest = UPLOAD_ROOT / fname
+        content = await img.read()
+        dest.write_bytes(content)
+        url = f"/uploads/{fname}"
+        saved_urls.append(url)
+        await db.execute(
+            "INSERT INTO product_images (product_id, image_url, sort_order) VALUES (?, ?, ?)",
+            product_id,
+            url,
+            i,
+        )
+
+    if saved_urls:
+        await db.execute(
+            "UPDATE products SET image_url = ? WHERE id = ?",
+            saved_urls[0],
+            product_id,
+        )
+
+    discount_id = await db.execute(
+        """
+        INSERT INTO discounts (name, percent, valid_to, scope_type, scope_id, is_active)
+        VALUES (?, ?, ?, 'product', ?, 1)
+        """,
+        f"Chegirma: {name.strip()}",
+        percent,
+        valid_to or None,
+        product_id,
+    )
+
+    await bump_version()
+    return {"product_id": product_id, "discount_id": discount_id, "images": saved_urls}
 
 
 @router.get("")
