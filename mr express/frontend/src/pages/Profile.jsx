@@ -620,17 +620,20 @@ function formatOrderDate(dt) {
 }
 
 const ORDER_TABS = [
+  { key: 'pending',   label: 'Yangi' },
   { key: 'confirmed', label: 'Tasdiqlandi' },
   { key: 'active',    label: 'Aktiv' },
   { key: 'arrived',   label: 'Yetib keldi' },
   { key: 'delivered', label: 'Yetkazildi' },
 ];
 
-function OrdersView({ onBack }) {
+const ORDERS_SEEN_KEY = 'mr_orders_seen_count';
+
+function OrdersView({ onBack, onSeen }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('confirmed');
+  const [activeTab, setActiveTab] = useState('pending');
   const [flashIds, setFlashIds] = useState(new Set());
 
   function flash(ids) {
@@ -644,11 +647,16 @@ function OrdersView({ onBack }) {
     api.getOrders()
       .then((data) => {
         const rows = Array.isArray(data) ? data : [];
-        setOrders(rows.map((o) => ({ ...o, status: normalizeOrderStatus(o.status) })));
+        const normalized = rows.map((o) => ({ ...o, status: normalizeOrderStatus(o.status) }));
+        setOrders(normalized);
+        // Ko'rib chiqildi — jami soni localStorage ga saqlanadi, badge tozalanadi
+        const total = normalized.length;
+        try { localStorage.setItem(ORDERS_SEEN_KEY, String(total)); } catch {}
+        onSeen?.(total);
       })
       .catch(() => setError('Buyurtmalarni yuklashda xato'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [onSeen]);
 
   useEffect(() => {
     const { WebApp } = window.Telegram || {};
@@ -1094,6 +1102,10 @@ export default function Profile() {
   const [savingTheme, setSavingTheme] = useState(false);
   const [groupBuyCount, setGroupBuyCount] = useState(0);
   const [promoCount, setPromoCount] = useState(0);
+  // localStorage dan oxirgi ko'rilgan buyurtmalar sonini o'qish
+  const [ordersSeenCount, setOrdersSeenCount] = useState(() => {
+    try { return parseInt(localStorage.getItem(ORDERS_SEEN_KEY) || '0', 10); } catch { return 0; }
+  });
 
   // Ichki bo'lim ochiq bo'lganda Telegram back button uni yopsin (navigate(-1) emas)
   useEffect(() => {
@@ -1142,7 +1154,12 @@ export default function Profile() {
   };
 
   if (section === 'orders') {
-    return <OrdersView onBack={() => setSection(null)} />;
+    return (
+      <OrdersView
+        onBack={() => setSection(null)}
+        onSeen={(total) => setOrdersSeenCount(total)}
+      />
+    );
   }
   if (section === 'cargo') {
     return <CargoCalcView onBack={() => setSection(null)} />;
@@ -1207,7 +1224,7 @@ export default function Profile() {
           <MenuRow
             icon={IconOrders}
             label="Buyurtmalarim"
-            badge={profile?.orders_count}
+            badge={Math.max(0, (profile?.orders_count || 0) - ordersSeenCount) || undefined}
             onClick={() => setSection('orders')}
           />
           <MenuRow icon={IconCargoCalc} label="Kargo hisoblagich" onClick={() => setSection('cargo')} />
