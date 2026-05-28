@@ -430,13 +430,15 @@ export default function ProductDetail() {
     <div className="flex h-full flex-col overflow-y-auto overflow-x-hidden bg-theme-bg">
       <div
         className="relative w-full shrink-0"
+        style={{ marginTop: 'calc(-1 * var(--tg-header-offset))' }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
         <img
           src={resolveUrl(images[activeImage] || product.image_url)}
           alt={product.name}
-          className="h-80 w-full object-cover select-none"
+          className="w-full object-cover select-none"
+          style={{ height: 'calc(var(--tg-header-offset) + 320px)' }}
           draggable={false}
         />
         {discount != null && (
@@ -444,7 +446,10 @@ export default function ProductDetail() {
             -{discount}%
           </span>
         )}
-        <div className="pointer-events-none absolute inset-x-0 top-3 flex items-center justify-between px-3">
+        <div
+          className="pointer-events-none absolute inset-x-0 flex items-center justify-between px-3"
+          style={{ top: 'calc(var(--tg-header-offset) + 12px)' }}
+        >
           <button
             type="button"
             onClick={() => navigate(-1)}
