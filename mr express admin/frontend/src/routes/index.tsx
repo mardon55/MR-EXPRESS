@@ -9,7 +9,6 @@ import { DiscountsPage } from '@/pages/discounts/DiscountsPage'
 import { ReelsPage } from '@/pages/reels/ReelsPage'
 import { GroupBuyPage } from '@/pages/group-buy/GroupBuyPage'
 import { PromocodesPage } from '@/pages/promocodes/PromocodesPage'
-import { ReviewsPage } from '@/pages/reviews/ReviewsPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
 import { NightMarketPage } from '@/pages/night-market/NightMarketPage'
 
@@ -27,7 +26,6 @@ export const router = createBrowserRouter([
       { path: 'reels', element: <ReelsPage /> },
       { path: 'group-buy', element: <GroupBuyPage /> },
       { path: 'promocodes', element: <PromocodesPage /> },
-      { path: 'reviews', element: <ReviewsPage /> },
       { path: 'night-market', element: <NightMarketPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: '*', element: <Navigate to="/" replace /> },

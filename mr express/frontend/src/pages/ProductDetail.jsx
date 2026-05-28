@@ -140,6 +140,13 @@ function ProductReviews({ productId }) {
       .catch(() => {});
   }, [productId, loadReviews]);
 
+  // Real-time: admin yoki boshqa foydalanuvchi sharh yozganda yangilash
+  useEffect(() => {
+    const handler = () => loadReviews();
+    window.addEventListener('mrexpress:refresh', handler);
+    return () => window.removeEventListener('mrexpress:refresh', handler);
+  }, [loadReviews]);
+
   // Tanlangan fayllar uchun preview URL larni tozalaymiz
   useEffect(() => {
     return () => previews.forEach((p) => URL.revokeObjectURL(p));
@@ -222,7 +229,7 @@ function ProductReviews({ productId }) {
 
       {submitted && (
         <div className="mb-3 rounded-xl bg-green-50 px-4 py-3 text-[13px] font-medium text-green-700">
-          ✅ Sharhingiz qabul qilindi, rahmat!
+          ✅ Sharhingiz qo&apos;shildi, rahmat!
         </div>
       )}
 

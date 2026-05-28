@@ -9,7 +9,6 @@ import {
   FilmIcon,
   UserGroupIcon,
   TicketIcon,
-  ChatBubbleLeftRightIcon,
   CreditCardIcon,
   MoonIcon,
 } from '@heroicons/react/24/outline'
@@ -23,7 +22,6 @@ import {
   FilmIcon as FilmSolid,
   UserGroupIcon as UserGroupSolid,
   TicketIcon as TicketSolid,
-  ChatBubbleLeftRightIcon as ChatBubbleSolid,
   CreditCardIcon as CreditCardSolid,
   MoonIcon as MoonSolid,
 } from '@heroicons/react/24/solid'
@@ -111,14 +109,6 @@ export const NAVIGATION: NavItem[] = [
     path: '/promocodes',
     icon: TicketIcon,
     iconActive: TicketSolid,
-  },
-  {
-    id: 'reviews',
-    label: 'Sharhlar',
-    description: 'Sharhlar moderatsiyasi',
-    path: '/reviews',
-    icon: ChatBubbleLeftRightIcon,
-    iconActive: ChatBubbleSolid,
   },
   {
     id: 'night-market',

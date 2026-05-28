@@ -714,7 +714,7 @@ async def get_reviews(product_id: int):
                u.first_name, u.last_name, u.username
         FROM reviews r
         JOIN users u ON u.id = r.user_id
-        WHERE r.product_id = ?
+        WHERE r.product_id = ? AND r.status = 'approved'
         ORDER BY r.created_at DESC
         """,
         product_id,
@@ -754,6 +754,19 @@ async def can_review(
     if already:
         return {"can_review": False, "reason": "already_reviewed"}
 
+    # Faqat yetkazilgan buyurtmasi bo'lgan foydalanuvchi sharh yoza oladi
+    delivered = await fetchval(
+        """
+        SELECT 1 FROM orders o
+        JOIN order_items oi ON oi.order_id = o.id
+        WHERE o.user_id = ? AND oi.product_id = ? AND o.status = 'delivered'
+        LIMIT 1
+        """,
+        uid, product_id,
+    )
+    if not delivered:
+        return {"can_review": False, "reason": "no_delivered_order"}
+
     return {"can_review": True, "reason": None}
 
 
@@ -783,12 +796,26 @@ async def create_review(
     if len(body.photos) > 6:
         raise HTTPException(400, "Maksimal 6 ta rasm yuklanishi mumkin")
 
+    # Yetkazilgan buyurtma borligini tekshir
+    delivered = await fetchval(
+        """
+        SELECT 1 FROM orders o
+        JOIN order_items oi ON oi.order_id = o.id
+        WHERE o.user_id = ? AND oi.product_id = ? AND o.status = 'delivered'
+        LIMIT 1
+        """,
+        uid, product_id,
+    )
+    if not delivered:
+        raise HTTPException(403, "Sharh yozish uchun mahsulot yetkazilgan bo'lishi kerak")
+
     content = body.comment.strip() if body.comment else None
     photos_json = json.dumps(body.photos)
     await execute(
-        "INSERT INTO reviews (user_id, product_id, rating, content, photos) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO reviews (user_id, product_id, rating, content, photos, status) VALUES (?, ?, ?, ?, ?, 'approved')",
         uid, product_id, body.rating, content, photos_json,
     )
+    await bump_version()
     return {"ok": True}
 
 
