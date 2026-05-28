@@ -620,7 +620,6 @@ function formatOrderDate(dt) {
 }
 
 const ORDER_TABS = [
-  { key: 'pending',   label: 'Yangi' },
   { key: 'confirmed', label: 'Tasdiqlandi' },
   { key: 'active',    label: 'Aktiv' },
   { key: 'arrived',   label: 'Yetib keldi' },
@@ -631,7 +630,7 @@ function OrdersView({ onBack }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTab] = useState('confirmed');
   const [flashIds, setFlashIds] = useState(new Set());
 
   function flash(ids) {

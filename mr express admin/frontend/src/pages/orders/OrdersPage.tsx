@@ -240,11 +240,18 @@ export function OrdersPage() {
             setTimeout(() => setLiveIds((s) => { const n = new Set(s); n.delete(order_id); return n }), 2500)
             return next
           })
+        } else if (event.type === 'new_order') {
+          loadOrders()
+          setActiveTab('pending')
         }
       } catch {}
     }
 
     es.onerror = () => {
+      setTimeout(() => {
+        const newEs = new EventSource('/api/v1/orders/events')
+        esRef.current = newEs
+      }, 3000)
       es.close()
     }
 

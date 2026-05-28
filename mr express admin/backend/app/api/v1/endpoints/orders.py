@@ -39,14 +39,39 @@ async def order_events():
     _sse_queues.append(queue)
 
     async def generate() -> AsyncIterator[str]:
+        last_max_id: int | None = None
+        heartbeat_count = 0
         try:
             yield 'data: {"type":"connected"}\n\n'
+            # Initialize last known max order id
+            try:
+                row = await db.fetchrow("SELECT COALESCE(MAX(id), 0) AS max_id FROM orders")
+                last_max_id = int(row["max_id"]) if row else 0
+            except Exception:
+                last_max_id = 0
+
             while True:
                 try:
-                    data = await asyncio.wait_for(queue.get(), timeout=25.0)
+                    data = await asyncio.wait_for(queue.get(), timeout=3.0)
                     yield f"data: {data}\n\n"
                 except asyncio.TimeoutError:
-                    yield ": heartbeat\n\n"
+                    # Poll for new orders every 3 seconds
+                    try:
+                        row = await db.fetchrow(
+                            "SELECT COALESCE(MAX(id), 0) AS max_id, COUNT(*) AS total FROM orders"
+                        )
+                        current_max = int(row["max_id"]) if row else 0
+                        if last_max_id is not None and current_max > last_max_id:
+                            last_max_id = current_max
+                            yield f'data: {{"type":"new_order","max_id":{current_max}}}\n\n'
+                        elif last_max_id is None:
+                            last_max_id = current_max
+                    except Exception:
+                        pass
+
+                    heartbeat_count += 1
+                    if heartbeat_count % 3 == 0:
+                        yield ": heartbeat\n\n"
         finally:
             try:
                 _sse_queues.remove(queue)
