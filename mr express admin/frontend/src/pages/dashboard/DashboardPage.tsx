@@ -1,12 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  UsersIcon,
-  ShoppingBagIcon,
   BanknotesIcon,
-  BoltIcon,
   CubeIcon,
-  ChatBubbleLeftRightIcon,
+  CalendarDaysIcon,
+  CalendarIcon,
 } from '@heroicons/react/24/solid'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatCard } from '@/components/ui/StatCard'
@@ -18,12 +16,10 @@ import { api, type DashboardStats } from '@/lib/api'
 import { orderStatusLabel } from '@/constants/orderStatus'
 
 const EMPTY_STATS: DashboardStats = {
-  users: 0,
-  telegram_users: 0,
   sold_products: 0,
-  orders: 0,
-  revenue: 0,
-  active_orders: 0,
+  daily_revenue: 0,
+  weekly_revenue: 0,
+  monthly_revenue: 0,
 }
 
 export function DashboardPage() {
@@ -32,88 +28,96 @@ export function DashboardPage() {
     { id: string; customer: string; amount: number; status: string }[]
   >([])
   const [loading, setLoading] = useState(true)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const loadStats = async (silent = false) => {
+    if (!silent) setLoading(true)
+    try {
+      const [statsRes, recentRes] = await Promise.all([
+        api.getDashboardStats(),
+        api.getRecentOrders(),
+      ])
+      setStats(statsRes.data)
+      setRecent(recentRes.data.items)
+      setLastUpdated(new Date())
+    } catch {
+      if (!silent) {
+        setStats(EMPTY_STATS)
+        setRecent([])
+      }
+    } finally {
+      if (!silent) setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    let cancelled = false
-    async function load() {
-      setLoading(true)
-      try {
-        const [statsRes, recentRes] = await Promise.all([
-          api.getDashboardStats(),
-          api.getRecentOrders(),
-        ])
-        if (!cancelled) {
-          setStats(statsRes.data)
-          setRecent(recentRes.data.items)
-        }
-      } catch {
-        if (!cancelled) {
-          setStats(EMPTY_STATS)
-          setRecent([])
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    load()
+    loadStats()
+
+    // Har 8 soniyada real-time yangilanish
+    intervalRef.current = setInterval(() => loadStats(true), 8000)
+
+    // Orders SSE orqali ham yangilanish
+    const es = new EventSource('/api/v1/orders/events')
+    es.onmessage = () => loadStats(true)
+
     return () => {
-      cancelled = true
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      es.close()
     }
   }, [])
+
+  const timeStr = lastUpdated
+    ? lastUpdated.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    : null
 
   return (
     <motion.div variants={staggerContainer} initial="initial" animate="animate">
       <PageHeader
         title="Boshqaruv paneli"
-        description="MR Express platformasining umumiy ko'rinishi — real API statistikasi."
-        action={<GlassButton variant="primary">Hisobot yuklab olish</GlassButton>}
+        description="MR Express platformasining umumiy ko'rinishi — real vaqt statistikasi."
+        action={
+          <div className="flex items-center gap-3">
+            {timeStr && (
+              <span className="text-xs text-ink-400 dark:text-ink-500">
+                🟢 Yangilandi: {timeStr}
+              </span>
+            )}
+            <GlassButton variant="primary" onClick={() => loadStats()}>
+              Yangilash
+            </GlassButton>
+          </div>
+        }
       />
 
       {loading && (
         <p className="mb-4 text-sm text-ink-500">Statistika yuklanmoqda…</p>
       )}
 
-      <div className="mb-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+      <div className="mb-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Telegram foydalanuvchilari"
-          value={formatNumber(stats.telegram_users)}
-          delta={stats.users_change}
-          icon={ChatBubbleLeftRightIcon}
-          gradient="from-accent-cyan/80 to-brand-600/80"
-        />
-        <StatCard
-          label="Sotilgan mahsulotlar soni"
-          value={formatNumber(stats.sold_products)}
-          icon={CubeIcon}
-          gradient="from-accent-violet/80 to-brand-600/80"
-        />
-        <StatCard
-          label="Foydalanuvchilar"
-          value={formatNumber(stats.users)}
-          delta={stats.users_change}
-          icon={UsersIcon}
-          gradient="from-accent-cyan/80 to-brand-600/80"
-        />
-        <StatCard
-          label="Umumiy buyurtmalar"
-          value={formatNumber(stats.orders)}
-          delta={stats.orders_change}
-          icon={ShoppingBagIcon}
-          gradient="from-brand-500/90 to-brand-700/80"
-        />
-        <StatCard
-          label="Daromad"
-          value={formatCurrency(stats.revenue)}
-          delta={stats.revenue_change}
+          label="Kunlik aylanma"
+          value={formatCurrency(stats.daily_revenue)}
           icon={BanknotesIcon}
           gradient="from-accent-emerald/80 to-brand-600/70"
         />
         <StatCard
-          label="Faol buyurtmalar"
-          value={formatNumber(stats.active_orders)}
-          delta={stats.active_orders_change}
-          icon={BoltIcon}
+          label="Haftalik aylanma"
+          value={formatCurrency(stats.weekly_revenue)}
+          icon={CalendarIcon}
+          gradient="from-brand-500/90 to-brand-700/80"
+        />
+        <StatCard
+          label="Oylik aylanma"
+          value={formatCurrency(stats.monthly_revenue)}
+          icon={CalendarDaysIcon}
           gradient="from-accent-violet/80 to-brand-600/80"
+        />
+        <StatCard
+          label="Sotilgan mahsulotlar"
+          value={formatNumber(stats.sold_products)}
+          icon={CubeIcon}
+          gradient="from-accent-cyan/80 to-brand-600/80"
         />
       </div>
 
@@ -124,7 +128,7 @@ export function DashboardPage() {
               So&apos;nggi buyurtmalar
             </h2>
             <span className="frosted-pill px-3 py-1 text-xs font-semibold text-brand-600 dark:text-accent-cyan">
-              API
+              LIVE
             </span>
           </div>
           <div className="overflow-x-auto">
@@ -175,7 +179,7 @@ export function DashboardPage() {
             Tezkor harakatlar
           </h2>
           <div className="flex flex-col gap-2.5">
-            {['Yangi buyurtma', 'Mahsulot qo\'shish', 'Banner yuklash', 'Promokod yaratish'].map(
+            {['Yangi buyurtma', "Mahsulot qo'shish", 'Banner yuklash', 'Promokod yaratish'].map(
               (label) => (
                 <GlassButton key={label} className="w-full justify-start !rounded-3xl">
                   <span className="h-2 w-2 rounded-full bg-gradient-to-r from-brand-400 to-accent-cyan" />
@@ -185,13 +189,10 @@ export function DashboardPage() {
             )}
           </div>
           <div className="mt-6 rounded-3xl border border-dashed border-white/25 bg-white/5 p-4 dark:border-white/10">
-            <p className="text-xs font-medium text-ink-500">API integratsiya</p>
+            <p className="text-xs font-medium text-ink-500">Real vaqt</p>
             <p className="mt-2 text-sm text-ink-600 dark:text-ink-300">
-              Statistika{' '}
-              <code className="rounded-xl bg-white/10 px-2 py-0.5 text-xs">
-                GET /api/v1/dashboard/stats
-              </code>{' '}
-              orqali real vaqtda yangilanadi.
+              Statistika har <span className="font-semibold text-brand-500">8 soniyada</span> va
+              yangi buyurtma kelganda avtomatik yangilanadi.
             </p>
           </div>
         </GlassPanel>

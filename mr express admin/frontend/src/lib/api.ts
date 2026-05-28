@@ -51,16 +51,10 @@ export interface ProductRow {
 }
 
 export interface DashboardStats {
-  users: number
-  telegram_users: number
   sold_products: number
-  orders: number
-  revenue: number
-  active_orders: number
-  users_change?: number
-  orders_change?: number
-  revenue_change?: number
-  active_orders_change?: number
+  daily_revenue: number
+  weekly_revenue: number
+  monthly_revenue: number
 }
 
 export interface UserRow {

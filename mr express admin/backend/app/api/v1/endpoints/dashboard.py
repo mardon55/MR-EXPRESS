@@ -8,30 +8,37 @@ router = APIRouter()
 @router.get("/stats")
 async def get_dashboard_stats():
     """Dashboard statistikasi — Telegram bot SQLite bazasidan."""
-    telegram_users = await db.fetchval("SELECT COUNT(*) FROM users") or 0
+
     sold_products = await db.fetchval(
         "SELECT COALESCE(SUM(quantity), 0) FROM order_items"
     ) or 0
-    orders_count = await db.fetchval("SELECT COUNT(*) FROM orders") or 0
-    revenue = await db.fetchval("SELECT COALESCE(SUM(total), 0) FROM orders") or 0
-    active_orders = await db.fetchval(
+
+    daily_revenue = await db.fetchval(
         """
-        SELECT COUNT(*) FROM orders
-        WHERE LOWER(status) NOT IN ('delivered', 'yetkazildi', 'topshirildi')
+        SELECT COALESCE(SUM(total), 0) FROM orders
+        WHERE DATE(created_at) = DATE('now', 'localtime')
+        """
+    ) or 0
+
+    weekly_revenue = await db.fetchval(
+        """
+        SELECT COALESCE(SUM(total), 0) FROM orders
+        WHERE DATE(created_at) >= DATE('now', '-6 days', 'localtime')
+        """
+    ) or 0
+
+    monthly_revenue = await db.fetchval(
+        """
+        SELECT COALESCE(SUM(total), 0) FROM orders
+        WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now', 'localtime')
         """
     ) or 0
 
     return {
-        "users": int(telegram_users),
-        "telegram_users": int(telegram_users),
         "sold_products": int(sold_products),
-        "orders": int(orders_count),
-        "revenue": float(revenue),
-        "active_orders": int(active_orders),
-        "users_change": 0,
-        "orders_change": 0,
-        "revenue_change": 0,
-        "active_orders_change": 0,
+        "daily_revenue": float(daily_revenue),
+        "weekly_revenue": float(weekly_revenue),
+        "monthly_revenue": float(monthly_revenue),
     }
 
 
