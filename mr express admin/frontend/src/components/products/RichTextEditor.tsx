@@ -13,21 +13,28 @@ interface RichTextEditorProps {
   placeholder?: string
 }
 
-function exec(cmd: string, value?: string) {
-  document.execCommand(cmd, false, value)
+function exec(cmd: string, val?: string) {
+  document.execCommand(cmd, false, val)
 }
 
 export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
   const ref = useRef<HTMLDivElement>(null)
+  const isComposing = useRef(false)
 
   useEffect(() => {
-    if (ref.current && ref.current.innerHTML !== value) {
-      ref.current.innerHTML = value
+    const el = ref.current
+    if (!el) return
+    const current = el.innerHTML
+    const normalized = current === '<br>' ? '' : current
+    if (normalized !== value) {
+      el.innerHTML = value || ''
     }
   }, [value])
 
   const sync = () => {
-    if (ref.current) onChange(ref.current.innerHTML)
+    if (!ref.current || isComposing.current) return
+    const html = ref.current.innerHTML
+    onChange(html === '<br>' ? '' : html)
   }
 
   return (
@@ -36,7 +43,7 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
         {[
           { icon: BoldIcon, cmd: 'bold', label: 'Qalin' },
           { icon: ItalicIcon, cmd: 'italic', label: 'Kursiv' },
-          { icon: ListBulletIcon, cmd: 'insertUnorderedList', label: 'Ro\'yxat' },
+          { icon: ListBulletIcon, cmd: 'insertUnorderedList', label: "Ro'yxat" },
         ].map(({ icon: Icon, cmd, label }) => (
           <button
             key={cmd}
@@ -76,7 +83,8 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
           'min-h-[140px] px-4 py-3 text-sm text-ink-800 outline-none dark:text-ink-100',
           'empty:before:pointer-events-none empty:before:text-ink-400 empty:before:content-[attr(data-placeholder)]',
         )}
-        dangerouslySetInnerHTML={{ __html: value }}
+        onCompositionStart={() => { isComposing.current = true }}
+        onCompositionEnd={() => { isComposing.current = false; sync() }}
         onInput={sync}
         onBlur={sync}
       />

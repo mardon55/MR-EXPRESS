@@ -184,6 +184,11 @@ export function AddProductModal({ open, onClose, onCreated }: AddProductModalPro
     setAttrValues((prev) => ({ ...prev, [key]: val }))
   }
 
+  function handleClose() {
+    reset()
+    onClose()
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -238,7 +243,7 @@ export function AddProductModal({ open, onClose, onCreated }: AddProductModalPro
             type="button"
             className="absolute inset-0 bg-ink-950/40 backdrop-blur-sm"
             aria-label="Yopish"
-            onClick={onClose}
+            onClick={handleClose}
           />
           <motion.div
             role="dialog"
@@ -257,7 +262,7 @@ export function AddProductModal({ open, onClose, onCreated }: AddProductModalPro
               </div>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="frosted-button !rounded-2xl !p-2"
                 aria-label="Modalni yopish"
               >
@@ -396,7 +401,7 @@ export function AddProductModal({ open, onClose, onCreated }: AddProductModalPro
               )}
 
               <div className="flex justify-end gap-3 pt-2">
-                <GlassButton type="button" onClick={onClose}>
+                <GlassButton type="button" onClick={handleClose}>
                   Bekor qilish
                 </GlassButton>
                 <GlassButton type="submit" variant="primary" disabled={saving}>
