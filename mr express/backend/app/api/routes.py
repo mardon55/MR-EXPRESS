@@ -86,6 +86,7 @@ async def mini_app_sse_events():
 # ──────────────────────────────────────────────────────────────────────────────
 
 ORDER_STATUS_ACTIVE = "Aktiv"
+ORDER_STATUS_PENDING = "pending"
 # Absolyut yo'l — qaysi papkadan ishga tushirilganidan qat'iy nazar
 UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads" / "stories"
 REVIEW_PHOTOS_DIR = Path(__file__).resolve().parent.parent.parent / "uploads" / "reviews"
@@ -530,7 +531,7 @@ async def list_orders(
             "id": r["id"],
             "code": f"MR-{r['id']:04d}",
             "total": float(r["total"]),
-            "status": r["status"] or ORDER_STATUS_ACTIVE,
+            "status": r["status"] or ORDER_STATUS_PENDING,
             "address": r["address"] or "",
             "phone": r["phone"] or "",
             "item_count": r["item_count"] or 0,
@@ -639,7 +640,7 @@ async def create_order(
                 INSERT INTO orders (user_id, total, address, phone, status)
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                (uid, float(total), body.address, phone or None, ORDER_STATUS_ACTIVE),
+                (uid, float(total), body.address, phone or None, ORDER_STATUS_PENDING),
             )
             order_id = cur.lastrowid
             for item in cart:
@@ -681,7 +682,7 @@ async def create_order(
                 "Buyurtma vaqtincha qabul qilinmadi. Iltimos, qayta urinib ko'ring.",
             ) from exc
 
-    return {"order_id": order_id, "total": float(total), "status": ORDER_STATUS_ACTIVE}
+    return {"order_id": order_id, "total": float(total), "status": ORDER_STATUS_PENDING}
 
 
 # =====================================================================
@@ -1077,7 +1078,7 @@ async def buy_night_market_item(
                     float(night_price),
                     f"[TUNGI BOZOR] {item['name']} (-{item['night_discount_percent']}%)",
                     user_phone or None,
-                    ORDER_STATUS_ACTIVE,
+                    ORDER_STATUS_PENDING,
                 ),
             )
             order_id = cur3.lastrowid
@@ -1097,7 +1098,7 @@ async def buy_night_market_item(
                 "ok": True,
                 "order_id": order_id,
                 "price": night_price,
-                "status": ORDER_STATUS_ACTIVE,
+                "status": ORDER_STATUS_PENDING,
             }
         except HTTPException:
             await wdb.rollback()

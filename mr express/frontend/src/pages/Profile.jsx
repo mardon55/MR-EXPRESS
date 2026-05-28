@@ -584,14 +584,16 @@ const STATUS_NORMALIZE_MAP = {
   'yetkazildi': 'delivered', 'topshirildi': 'delivered',
   'Yetkazildi': 'delivered', 'Yetib keldi': 'arrived',
   'Tasdiqlandi': 'confirmed',
+  'Yangi': 'pending', 'new': 'pending',
 };
 
 function normalizeOrderStatus(s) {
-  if (!s) return 'active';
+  if (!s) return 'pending';
   return STATUS_NORMALIZE_MAP[s] || s;
 }
 
 const ORDER_STATUS_LABEL = {
+  'pending':   'Yangi',
   'confirmed': 'Tasdiqlandi',
   'active':    'Aktiv',
   'arrived':   'Yetib keldi',
@@ -599,13 +601,14 @@ const ORDER_STATUS_LABEL = {
 };
 
 const ORDER_STATUS_COLOR = {
+  'pending':   'bg-rose-100 text-rose-700',
   'confirmed': 'bg-blue-100 text-blue-700',
   'active':    'bg-amber-100 text-amber-700',
   'arrived':   'bg-violet-100 text-violet-700',
   'delivered': 'bg-emerald-100 text-emerald-700',
 };
 
-function statusLabel(s) { return ORDER_STATUS_LABEL[normalizeOrderStatus(s)] || s || 'Aktiv'; }
+function statusLabel(s) { return ORDER_STATUS_LABEL[normalizeOrderStatus(s)] || s || 'Yangi'; }
 function statusColor(s) { return ORDER_STATUS_COLOR[normalizeOrderStatus(s)] || 'bg-neutral-100 text-neutral-600'; }
 
 function formatOrderDate(dt) {
@@ -617,9 +620,10 @@ function formatOrderDate(dt) {
 }
 
 const ORDER_TABS = [
+  { key: 'pending',   label: 'Yangi' },
   { key: 'confirmed', label: 'Tasdiqlandi' },
   { key: 'active',    label: 'Aktiv' },
-  { key: 'arrived',   label: 'Yetib Keldi' },
+  { key: 'arrived',   label: 'Yetib keldi' },
   { key: 'delivered', label: 'Yetkazildi' },
 ];
 
@@ -627,7 +631,7 @@ function OrdersView({ onBack }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('active');
+  const [activeTab, setActiveTab] = useState('pending');
   const [flashIds, setFlashIds] = useState(new Set());
 
   function flash(ids) {

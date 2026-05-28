@@ -1,4 +1,5 @@
 export const ORDER_STATUS_OPTIONS = [
+  { value: 'pending',   label: 'Yangi' },
   { value: 'confirmed', label: 'Tasdiqlandi' },
   { value: 'active',    label: 'Aktiv' },
   { value: 'arrived',   label: 'Yetib keldi' },
@@ -9,6 +10,7 @@ export type OrderStatusValue = (typeof ORDER_STATUS_OPTIONS)[number]['value']
 
 export const TAB_STATUSES = [
   { key: 'all',       label: 'Barchasi' },
+  { key: 'pending',   label: 'Yangi' },
   { key: 'confirmed', label: 'Tasdiqlandi' },
   { key: 'active',    label: 'Aktiv' },
   { key: 'arrived',   label: 'Yetib keldi' },
@@ -18,6 +20,7 @@ export const TAB_STATUSES = [
 export type TabKey = (typeof TAB_STATUSES)[number]['key']
 
 const STATUS_COLORS: Record<OrderStatusValue, string> = {
+  pending:   'bg-rose-500/20 text-rose-700 dark:text-rose-400',
   confirmed: 'bg-blue-500/20 text-blue-700 dark:text-blue-400',
   active:    'bg-amber-500/20 text-amber-700 dark:text-amber-400',
   arrived:   'bg-violet-500/20 text-violet-700 dark:text-violet-400',
