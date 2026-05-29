@@ -47,6 +47,13 @@ async def _migrate(db: aiosqlite.Connection) -> None:
     if "description" not in reel_cols:
         await db.execute("ALTER TABLE reels ADD COLUMN description TEXT")
 
+    cur3 = await db.execute("PRAGMA table_info(products)")
+    prod_cols = {row[1] for row in await cur3.fetchall()}
+    if "is_reel_product" not in prod_cols:
+        await db.execute(
+            "ALTER TABLE products ADD COLUMN is_reel_product INTEGER DEFAULT 0"
+        )
+
     await db.executescript(
         """
         CREATE TABLE IF NOT EXISTS product_images (

@@ -37,6 +37,10 @@ async def _migrate_schema(db: aiosqlite.Connection):
     product_cols = {row[1] for row in await cur.fetchall()}
     if "attributes" not in product_cols:
         await db.execute("ALTER TABLE products ADD COLUMN attributes TEXT")
+    if "is_reel_product" not in product_cols:
+        await db.execute(
+            "ALTER TABLE products ADD COLUMN is_reel_product INTEGER DEFAULT 0"
+        )
 
     cur = await db.execute("PRAGMA table_info(group_buys)")
     gb_cols = {row[1] for row in await cur.fetchall()}

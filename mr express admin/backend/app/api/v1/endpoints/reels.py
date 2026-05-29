@@ -103,11 +103,12 @@ async def create_reel(
             thumbnail_url = f"/uploads/{img_fname}"
 
     # — Products jadvaliga avto-mahsulot qo'shish (savatcha uchun kerak) —
+    # is_reel_product=1 → katalogda ko'rinmaydi, faqat reelslarda
     desc = description.strip() or None
     product_id = await db.execute(
         """
-        INSERT INTO products (name, description, price, image_url, stock, is_featured, is_discount)
-        VALUES (?, ?, ?, ?, 9999, 0, 0)
+        INSERT INTO products (name, description, price, image_url, stock, is_featured, is_discount, is_reel_product)
+        VALUES (?, ?, ?, ?, 9999, 0, 0, 1)
         """,
         title,
         desc,

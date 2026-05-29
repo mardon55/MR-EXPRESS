@@ -49,7 +49,7 @@ async def list_products(
     page = max(1, page)
     limit = min(max(1, limit), 500)
     offset = (page - 1) * limit
-    conditions = ["1=1"]
+    conditions = ["COALESCE(p.is_reel_product, 0) = 0"]
     params: list = []
     if category_id:
         conditions.append("p.category_id = ?")

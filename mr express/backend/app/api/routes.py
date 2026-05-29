@@ -271,7 +271,7 @@ async def products(
     limit: int = Query(10000),
     offset: int = Query(0),
 ):
-    conditions = ["1=1"]
+    conditions = ["COALESCE(is_reel_product, 0) = 0"]
     params: list[Any] = []
 
     if q:
