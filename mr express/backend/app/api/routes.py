@@ -319,18 +319,21 @@ async def product_detail(product_id: int):
 
 
 def _reel_public(row) -> dict:
-    price = float(row["price"]) if row.get("price") is not None else float(row["product_price"] or 0)
+    price = float(row["price"]) if row.get("price") is not None else float(row.get("product_price") or 0)
+    name = row.get("reel_title") or row.get("product_name") or ""
+    description = row.get("reel_description") or row.get("product_description") or ""
+    image_url = row.get("product_image_url")
     return {
         "id": row["id"],
         "video_url": row["video_url"],
         "thumbnail_url": row.get("thumbnail_url"),
         "price": price,
         "product": {
-            "id": row["product_id"],
-            "name": row.get("product_name") or "",
-            "description": row.get("product_description") or "",
-            "image_url": row.get("product_image_url"),
-            "price": float(row["product_price"]) if row.get("product_price") is not None else price,
+            "id": row.get("product_id"),
+            "name": name,
+            "description": description,
+            "image_url": image_url,
+            "price": price,
         },
     }
 
@@ -340,6 +343,7 @@ async def list_reels():
     rows = await fetch(
         """
         SELECT r.id, r.video_url, r.thumbnail_url, r.price, r.product_id,
+               r.title AS reel_title, r.description AS reel_description,
                p.name AS product_name, p.description AS product_description,
                p.image_url AS product_image_url, p.price AS product_price
         FROM reels r

@@ -113,6 +113,8 @@ export interface ReelRow {
   product_name: string | null
   product_description: string | null
   product_image_url: string | null
+  title?: string | null
+  description?: string | null
 }
 
 export interface GroupBuyRow {

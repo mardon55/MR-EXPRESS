@@ -18,7 +18,6 @@ ALLOWED_VIDEO_TYPES = {
     "video/mpeg",
 }
 
-
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 
 
@@ -28,28 +27,11 @@ def _reel_dict(row: dict) -> dict:
         "video_url": row["video_url"],
         "thumbnail_url": row.get("thumbnail_url"),
         "price": float(row["price"]) if row.get("price") is not None else 0,
-        "product_id": row["product_id"],
-        "product_name": row.get("product_name"),
-        "product_description": row.get("product_description"),
+        "product_id": row.get("product_id"),
+        "product_name": row.get("title") or row.get("product_name"),
+        "product_description": row.get("description") or row.get("product_description"),
         "product_image_url": row.get("product_image_url"),
     }
-
-
-async def _reel_item(reel_id: int) -> dict | None:
-    row = await db.fetchrow(
-        """
-        SELECT r.id, r.video_url, r.thumbnail_url, r.price, r.product_id,
-               p.name AS product_name, p.description AS product_description,
-               p.image_url AS product_image_url
-        FROM reels r
-        LEFT JOIN products p ON p.id = r.product_id
-        WHERE r.id = ?
-        """,
-        reel_id,
-    )
-    if not row:
-        return None
-    return _reel_dict(row)
 
 
 @router.get("")
@@ -57,6 +39,7 @@ async def list_reels():
     rows = await db.fetch(
         """
         SELECT r.id, r.video_url, r.thumbnail_url, r.price, r.product_id,
+               r.title, r.description,
                p.name AS product_name, p.description AS product_description,
                p.image_url AS product_image_url
         FROM reels r
@@ -70,20 +53,16 @@ async def list_reels():
 
 @router.post("")
 async def create_reel(
-    product_id: int = Form(...),
+    title: str = Form(...),
+    description: str = Form(""),
     price: float = Form(...),
     video: UploadFile = File(...),
     thumbnail: UploadFile = File(None),
 ):
-    product = await db.fetchrow(
-        "SELECT id, name, price, description, image_url FROM products WHERE id = ?",
-        product_id,
-    )
-    if not product:
-        raise HTTPException(400, "Mahsulot topilmadi")
+    title = title.strip()
+    if not title:
+        raise HTTPException(400, "Mahsulot nomini kiriting")
 
-    if price <= 0 and product.get("price"):
-        price = float(product["price"])
     if price <= 0:
         raise HTTPException(400, "Narx 0 dan katta bo'lishi kerak")
 
@@ -122,12 +101,13 @@ async def create_reel(
 
     reel_id = await db.execute(
         """
-        INSERT INTO reels (video_url, thumbnail_url, product_id, price, is_active)
-        VALUES (?, ?, ?, ?, 1)
+        INSERT INTO reels (title, description, video_url, thumbnail_url, product_id, price, is_active)
+        VALUES (?, ?, ?, ?, NULL, ?, 1)
         """,
+        title,
+        description.strip() or None,
         video_url,
         thumbnail_url,
-        product_id,
         price,
     )
     await bump_version()
@@ -137,10 +117,10 @@ async def create_reel(
             "video_url": video_url,
             "thumbnail_url": thumbnail_url,
             "price": float(price),
-            "product_id": product_id,
-            "product_name": product.get("name"),
-            "product_description": product.get("description"),
-            "product_image_url": product.get("image_url"),
+            "product_id": None,
+            "product_name": title,
+            "product_description": description.strip() or None,
+            "product_image_url": None,
         }
     }
 
