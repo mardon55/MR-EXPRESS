@@ -41,8 +41,7 @@ function getCheckoutHeaders() {
 }
 
 function buildOrderPayload(form) {
-  const namePart = `${form.firstName} ${form.lastName}`.trim();
-  const address = [namePart, form.viloyat, form.tuman].filter(Boolean).join(', ');
+  const address = [form.viloyat, form.tuman].filter(Boolean).join(', ');
   return {
     address,
     phone: form.phone.trim(),

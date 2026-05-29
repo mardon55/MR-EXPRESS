@@ -134,8 +134,8 @@ function OrderTableRow({
         <td className="px-4 py-4 text-ink-600 dark:text-ink-300">
           {row.phone ?? '—'}
         </td>
-        <td className="px-4 py-4 text-ink-600 dark:text-ink-300 max-w-[180px]">
-          <span className="line-clamp-2 text-xs leading-relaxed">
+        <td className="px-4 py-4 text-ink-600 dark:text-ink-300 min-w-[200px] max-w-[280px]">
+          <span className="text-xs leading-relaxed break-words whitespace-normal">
             {row.address ?? '—'}
           </span>
         </td>
