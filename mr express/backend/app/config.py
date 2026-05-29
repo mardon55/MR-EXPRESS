@@ -10,7 +10,7 @@ _REPLIT_DOMAIN = os.environ.get("REPLIT_DEV_DOMAIN", "")
 _DEFAULT_WEBAPP_URL = (
     f"https://{_REPLIT_DOMAIN}/shop/"
     if _REPLIT_DOMAIN
-    else "https://ff590efc-8630-404d-abfe-2d7980197ae3-00-8fxpq6ykrtbc.sisko.replit.dev/shop/"
+    else "https://b4f1919f-add7-4d12-801d-1aabf81fd85d-00-1fxv7e809t438.pike.replit.dev/shop/"
 )
 
 
