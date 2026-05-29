@@ -21,7 +21,7 @@ export function ProductsPage() {
     setLoading(true)
     setError(null)
     try {
-      const { data } = await api.getProducts({ limit: 100 })
+      const { data } = await api.getProducts({ limit: 10000 })
       setProducts(data.items)
     } catch {
       setError('Mahsulotlarni yuklab bo\'lmadi')

@@ -42,12 +42,12 @@ async def list_categories():
 @router.get("/products")
 async def list_products(
     page: int = 1,
-    limit: int = 50,
+    limit: int = 10000,
     category_id: int | None = None,
     is_discount: int | None = None,
 ):
     page = max(1, page)
-    limit = min(max(1, limit), 500)
+    limit = max(1, limit)
     offset = (page - 1) * limit
     conditions = ["COALESCE(p.is_reel_product, 0) = 0"]
     params: list = []
@@ -66,11 +66,8 @@ async def list_products(
         LEFT JOIN categories c ON c.id = p.category_id
         WHERE {where}
         ORDER BY p.id DESC
-        LIMIT ? OFFSET ?
         """,
         *params,
-        limit,
-        offset,
     )
     import json
     result = []

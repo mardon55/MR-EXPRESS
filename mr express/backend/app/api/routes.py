@@ -269,8 +269,6 @@ async def products(
     category_id: int | None = Query(None),
     discount_only: bool = Query(False),
     featured_only: bool = Query(False),
-    limit: int = Query(10000),
-    offset: int = Query(0),
 ):
     conditions = ["COALESCE(is_reel_product, 0) = 0"]
     params: list[Any] = []
@@ -295,9 +293,8 @@ async def products(
         conditions.append("is_featured = 1")
 
     where = " AND ".join(conditions)
-    params.extend([limit, offset])
     rows = await fetch(
-        f"SELECT * FROM products WHERE {where} ORDER BY id DESC LIMIT ? OFFSET ?",
+        f"SELECT * FROM products WHERE {where} ORDER BY id DESC",
         *params,
     )
     return [_product_row(r) for r in rows]
