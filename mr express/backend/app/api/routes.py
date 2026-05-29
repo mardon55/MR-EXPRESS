@@ -134,6 +134,7 @@ def _product_row(r) -> dict:
 class CartUpdate(BaseModel):
     product_id: int
     quantity: int
+    selected_variants: list[dict] | None = None
 
 
 class OrderCreate(BaseModel):
@@ -361,7 +362,7 @@ async def get_cart(x_telegram_user_id: str = Header(..., alias="X-Telegram-User-
     uid = await _db_user_id(tid)
     rows = await fetch(
         """
-        SELECT c.id AS cart_id, c.quantity,
+        SELECT c.id AS cart_id, c.quantity, c.selected_variants,
                p.id, p.category_id, p.name, p.description, p.price, p.old_price,
                p.image_url, p.stock, p.is_featured, p.is_discount
         FROM cart_items c
@@ -370,6 +371,7 @@ async def get_cart(x_telegram_user_id: str = Header(..., alias="X-Telegram-User-
         """,
         uid,
     )
+    import json as _json
     items = []
     total = Decimal("0")
     for r in rows:
@@ -377,10 +379,13 @@ async def get_cart(x_telegram_user_id: str = Header(..., alias="X-Telegram-User-
         qty = r["quantity"]
         subtotal = price * qty
         total += subtotal
+        sv_raw = r.get("selected_variants")
+        sv = _json.loads(sv_raw) if sv_raw else None
         items.append({
             "cart_id": r["cart_id"],
             "quantity": qty,
             "subtotal": float(subtotal),
+            "selected_variants": sv,
             "product": _product_row(r),
         })
     return {"items": items, "total": float(total), "count": sum(i["quantity"] for i in items)}
@@ -394,6 +399,9 @@ async def update_cart(
     tid = _user_id_header(x_telegram_user_id)
     uid = await _db_user_id(tid)
 
+    import json as _json
+    sv_json = _json.dumps(body.selected_variants) if body.selected_variants else None
+
     if body.quantity <= 0:
         await execute(
             "DELETE FROM cart_items WHERE user_id = ? AND product_id = ?",
@@ -403,13 +411,16 @@ async def update_cart(
     else:
         await execute(
             """
-            INSERT INTO cart_items (user_id, product_id, quantity)
-            VALUES (?, ?, ?)
-            ON CONFLICT (user_id, product_id) DO UPDATE SET quantity = excluded.quantity
+            INSERT INTO cart_items (user_id, product_id, quantity, selected_variants)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT (user_id, product_id) DO UPDATE SET
+                quantity = excluded.quantity,
+                selected_variants = excluded.selected_variants
             """,
             uid,
             body.product_id,
             body.quantity,
+            sv_json,
         )
     return {"ok": True}
 
@@ -608,7 +619,7 @@ async def create_order(
 
     cart = await fetch(
         """
-        SELECT c.quantity, p.id, p.price, p.stock, p.name
+        SELECT c.quantity, c.selected_variants, p.id, p.price, p.stock, p.name
         FROM cart_items c
         JOIN products p ON p.id = c.product_id
         WHERE c.user_id = ?
@@ -650,13 +661,14 @@ async def create_order(
                 (uid, float(total), body.address, phone or None, ORDER_STATUS_PENDING),
             )
             order_id = cur.lastrowid
+            import json as _json2
             for item in cart:
                 await wdb.execute(
                     """
-                    INSERT INTO order_items (order_id, product_id, quantity, price)
-                    VALUES (?, ?, ?, ?)
+                    INSERT INTO order_items (order_id, product_id, quantity, price, selected_variants)
+                    VALUES (?, ?, ?, ?, ?)
                     """,
-                    (order_id, item["id"], item["quantity"], item["price"]),
+                    (order_id, item["id"], item["quantity"], item["price"], item.get("selected_variants")),
                 )
                 await wdb.execute(
                     "UPDATE products SET stock = stock - ? WHERE id = ?",

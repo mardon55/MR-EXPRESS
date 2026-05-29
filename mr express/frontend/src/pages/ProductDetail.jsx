@@ -391,13 +391,14 @@ export default function ProductDetail() {
   const addToCart = async () => {
     const cart = await api.cart().catch(() => ({ items: [] }));
     const existing = cart.items?.find((i) => i.product.id === product.id);
-    await api.updateCart(product.id, (existing?.quantity || 0) + qty);
+    const variantEntries = Object.entries(selectedVariants).filter(([, v]) => v);
+    const formattedVariants = variantEntries.length > 0
+      ? variantEntries.map(([k, v]) => ({ name: ATTR_LABELS[k] || k, value: String(v) }))
+      : null;
+    await api.updateCart(product.id, (existing?.quantity || 0) + qty, formattedVariants);
     await refreshCart();
     haptic('success');
-    const variantText = Object.entries(selectedVariants)
-      .filter(([, v]) => v)
-      .map(([k, v]) => `${ATTR_LABELS[k] || k}: ${v}`)
-      .join(', ');
+    const variantText = variantEntries.map(([k, v]) => `${ATTR_LABELS[k] || k}: ${v}`).join(', ');
     tg?.showAlert?.(`Savatchaga qo'shildi!${variantText ? '\n' + variantText : ''}`);
   };
 

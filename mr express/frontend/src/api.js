@@ -120,11 +120,11 @@ export const api = {
   reels: () => request('/api/reels'),
 
   cart: () => request('/api/cart'),
-  updateCart: async (product_id, quantity) => {
+  updateCart: async (product_id, quantity, selected_variants = null) => {
     cacheInvalidate('/api/cart');
     return _fetch('/api/cart', {
       method: 'POST',
-      body: JSON.stringify({ product_id, quantity }),
+      body: JSON.stringify({ product_id, quantity, selected_variants }),
     });
   },
 

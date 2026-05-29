@@ -146,6 +146,7 @@ async def list_orders(
                 oi.order_id,
                 oi.quantity,
                 oi.price AS unit_price,
+                oi.selected_variants,
                 p.id AS product_id,
                 p.name AS product_name,
                 p.image_url,
@@ -161,6 +162,8 @@ async def list_orders(
             oid = ir["order_id"]
             if oid not in items_map:
                 items_map[oid] = []
+            sv_raw = ir.get("selected_variants")
+            sv = json.loads(sv_raw) if sv_raw else None
             items_map[oid].append({
                 "product_id": ir["product_id"],
                 "product_name": ir["product_name"],
@@ -169,6 +172,7 @@ async def list_orders(
                 "unit_price": float(ir["unit_price"]),
                 "old_price": float(ir["old_price"]) if ir["old_price"] else None,
                 "subtotal": float(ir["unit_price"]) * int(ir["quantity"]),
+                "selected_variants": sv,
             })
 
     items = []

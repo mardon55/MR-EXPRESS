@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { GlassPanel } from '@/components/ui/GlassPanel'
 import { GlassButton } from '@/components/ui/GlassButton'
 import { OrderStatusSelect } from '@/components/orders/OrderStatusSelect'
-import { api, type OrderRow, type OrderItem } from '@/lib/api'
+import { api, type OrderRow, type OrderItem, type SelectedVariant } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 import {
   orderStatusLabel,
@@ -59,6 +59,11 @@ function OrderItemsRow({ items }: { items: OrderItem[] }) {
                 <p className="truncate text-[13px] font-semibold text-ink-800 dark:text-ink-100">
                   {item.product_name}
                 </p>
+                {item.selected_variants && item.selected_variants.length > 0 && (
+                  <p className="mt-0.5 text-[11px] text-ink-400">
+                    {item.selected_variants.map((v: SelectedVariant) => `${v.name}: ${v.value}`).join(' | ')}
+                  </p>
+                )}
                 <div className="mt-0.5 flex items-center gap-2">
                   <span className="text-[12px] font-bold text-brand-600 dark:text-accent-cyan">
                     {formatCurrency(item.unit_price)}
