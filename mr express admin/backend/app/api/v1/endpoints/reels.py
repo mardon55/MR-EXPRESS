@@ -30,7 +30,7 @@ def _reel_dict(row: dict) -> dict:
         "product_id": row.get("product_id"),
         "product_name": row.get("title") or row.get("product_name"),
         "product_description": row.get("description") or row.get("product_description"),
-        "product_image_url": row.get("product_image_url"),
+        "product_image_url": row.get("thumbnail_url") or row.get("product_image_url"),
     }
 
 
@@ -79,6 +79,8 @@ async def create_reel(
         ext = ".mp4"
 
     UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
+
+    # — Video saqlash —
     fname = f"reel_{uuid4().hex[:12]}{ext}"
     dest = UPLOAD_ROOT / fname
     content = await video.read()
@@ -87,6 +89,7 @@ async def create_reel(
     dest.write_bytes(content)
     video_url = f"/uploads/{fname}"
 
+    # — Thumbnail saqlash —
     thumbnail_url = None
     if thumbnail and thumbnail.filename:
         img_ext = Path(thumbnail.filename).suffix.lower()
@@ -99,17 +102,33 @@ async def create_reel(
             img_dest.write_bytes(img_content)
             thumbnail_url = f"/uploads/{img_fname}"
 
+    # — Products jadvaliga avto-mahsulot qo'shish (savatcha uchun kerak) —
+    desc = description.strip() or None
+    product_id = await db.execute(
+        """
+        INSERT INTO products (name, description, price, image_url, stock, is_featured, is_discount)
+        VALUES (?, ?, ?, ?, 9999, 0, 0)
+        """,
+        title,
+        desc,
+        price,
+        thumbnail_url,
+    )
+
+    # — Reel saqlash (product_id bilan) —
     reel_id = await db.execute(
         """
         INSERT INTO reels (title, description, video_url, thumbnail_url, product_id, price, is_active)
-        VALUES (?, ?, ?, ?, NULL, ?, 1)
+        VALUES (?, ?, ?, ?, ?, ?, 1)
         """,
         title,
-        description.strip() or None,
+        desc,
         video_url,
         thumbnail_url,
+        product_id,
         price,
     )
+
     await bump_version()
     return {
         "item": {
@@ -117,24 +136,45 @@ async def create_reel(
             "video_url": video_url,
             "thumbnail_url": thumbnail_url,
             "price": float(price),
-            "product_id": None,
+            "product_id": product_id,
             "product_name": title,
-            "product_description": description.strip() or None,
-            "product_image_url": None,
+            "product_description": desc,
+            "product_image_url": thumbnail_url,
         }
     }
 
 
 @router.delete("/{reel_id}")
 async def delete_reel(reel_id: int):
-    row = await db.fetchrow("SELECT id, video_url FROM reels WHERE id = ?", reel_id)
+    row = await db.fetchrow(
+        "SELECT id, video_url, thumbnail_url, product_id FROM reels WHERE id = ?",
+        reel_id,
+    )
     if not row:
         raise HTTPException(404, "Reel topilmadi")
 
+    # Video faylni o'chirish
     if row.get("video_url", "").startswith("/uploads/"):
         file_path = UPLOAD_ROOT / Path(row["video_url"]).name
         if file_path.is_file():
             file_path.unlink(missing_ok=True)
 
+    # Thumbnail faylni o'chirish
+    if row.get("thumbnail_url", "") and row["thumbnail_url"].startswith("/uploads/"):
+        thumb_path = UPLOAD_ROOT / Path(row["thumbnail_url"]).name
+        if thumb_path.is_file():
+            thumb_path.unlink(missing_ok=True)
+
     await db.execute("DELETE FROM reels WHERE id = ?", reel_id)
+
+    # Avto-yaratilgan mahsulotni o'chirish (faqat buyurtmalarda yo'q bo'lsa)
+    if row.get("product_id"):
+        in_orders = await db.fetchrow(
+            "SELECT 1 FROM order_items WHERE product_id = ? LIMIT 1",
+            row["product_id"],
+        )
+        if not in_orders:
+            await db.execute("DELETE FROM products WHERE id = ?", row["product_id"])
+
+    await bump_version()
     return {"ok": True}
