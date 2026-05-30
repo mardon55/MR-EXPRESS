@@ -1,6 +1,7 @@
+import { memo } from 'react';
 import ProductCard from './ProductCard';
 
-export default function ProductGrid({ products, onAddCart, emptyMessage }) {
+function ProductGrid({ products, onAddCart, emptyMessage }) {
   if (!products?.length) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
@@ -19,3 +20,5 @@ export default function ProductGrid({ products, onAddCart, emptyMessage }) {
     </div>
   );
 }
+
+export default memo(ProductGrid);

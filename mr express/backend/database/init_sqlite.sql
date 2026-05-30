@@ -127,3 +127,20 @@ CREATE TABLE IF NOT EXISTS _app_version (
 );
 
 INSERT OR IGNORE INTO _app_version (id, version) VALUES (1, 0);
+
+-- ─── Performance indexes ────────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_products_category_id      ON products(category_id);
+CREATE INDEX IF NOT EXISTS idx_products_is_discount      ON products(is_discount);
+CREATE INDEX IF NOT EXISTS idx_products_is_featured      ON products(is_featured);
+CREATE INDEX IF NOT EXISTS idx_products_is_reel          ON products(is_reel_product);
+CREATE INDEX IF NOT EXISTS idx_products_name             ON products(name COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS idx_cart_items_user_id        ON cart_items(user_id);
+CREATE INDEX IF NOT EXISTS idx_favorites_user_id         ON favorites(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id            ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id      ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_categories_parent_id      ON categories(parent_id);
+CREATE INDEX IF NOT EXISTS idx_reels_is_active           ON reels(is_active, sort_order);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id     ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_product_id        ON reviews(product_id);
+CREATE INDEX IF NOT EXISTS idx_banners_is_active         ON banners(is_active, sort_order);
+-- ─────────────────────────────────────────────────────────────────────────────

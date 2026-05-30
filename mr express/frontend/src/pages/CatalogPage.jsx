@@ -191,14 +191,11 @@ function SubCategoryProducts({ sub, onBack }) {
 
   useEffect(() => {
     setLoading(true);
-    api
-      .products({ category_id: sub.id })
-      .then(setProducts)
-      .catch(() => setProducts([]))
-      .finally(() => setLoading(false));
-  }, [sub.id]);
+    loadProducts();
+    setLoading(false);
+  }, [loadProducts]);
 
-  useAutoRefresh(loadProducts, 20_000);
+  useAutoRefresh(loadProducts, 120_000);
 
   const handleAddCart = async (product) => {
     const cart = await api.cart().catch(() => ({ items: [] }));

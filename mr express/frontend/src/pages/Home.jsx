@@ -24,22 +24,31 @@ export default function Home() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
-  useAutoRefresh(loadData, 20_000);
+  useAutoRefresh(loadData, 120_000);
 
-  const handleAddCart = async (product) => {
-    const cart = await api.cart().catch(() => ({ items: [] }));
-    const existing = cart.items?.find((i) => i.product.id === product.id);
-    const qty = (existing?.quantity || 0) + 1;
-    await api.updateCart(product.id, qty);
-    await refreshCart();
-    haptic('success');
-  };
+  const handleAddCart = useCallback(async (product) => {
+    try {
+      const cart = await api.cart().catch(() => ({ items: [] }));
+      const existing = cart.items?.find((i) => i.product.id === product.id);
+      const qty = (existing?.quantity || 0) + 1;
+      await api.updateCart(product.id, qty);
+      await refreshCart();
+      haptic('success');
+    } catch {
+      haptic('error');
+    }
+  }, [refreshCart, haptic]);
+
+  const openSearch = useCallback(() => {
+    haptic('light');
+    setSearchOpen(true);
+  }, [haptic]);
 
   return (
     <div className="scroll-area h-full px-4 pb-nav-safe pt-1">
       <button
         type="button"
-        onClick={() => { haptic('light'); setSearchOpen(true); }}
+        onClick={openSearch}
         className="glass-float relative w-full flex items-center gap-3 px-4 py-3.5 text-left"
         aria-label="Qidirish"
       >

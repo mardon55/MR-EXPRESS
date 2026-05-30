@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { resolveUrl } from '../utils/resolveUrl';
 import { formatPrice } from '../api';
@@ -5,7 +6,7 @@ import { useApp } from '../context/AppContext';
 import { useTelegram } from '../hooks/useTelegram';
 import { IconHeartFilled, IconCart } from './icons/TabIcons';
 
-export default function ProductCard({ product, onAddCart }) {
+function ProductCard({ product, onAddCart }) {
   const { isFavorite, toggleFavorite } = useApp();
   const { haptic } = useTelegram();
   const fav = isFavorite(product.id);
@@ -37,6 +38,7 @@ export default function ProductCard({ product, onAddCart }) {
           alt={product.name}
           className="h-full w-full object-cover transition-fluid duration-500 hover:scale-[1.03]"
           loading="lazy"
+          decoding="async"
         />
         {discount && (
           <span className="absolute left-3 top-3 rounded-squircle bg-ios-red/90 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
@@ -78,3 +80,5 @@ export default function ProductCard({ product, onAddCart }) {
     </Link>
   );
 }
+
+export default memo(ProductCard);
