@@ -1,0 +1,26 @@
+Forget about specific product examples like electronics or clothing. I am talking about a completely UNIVERSAL, GLOBAL search system that applies to EVERY SINGLE PRODUCT in the database, regardless of its type, category, or classification. 
+
+The search algorithm must be abstracted completely so that it treats all products equally and indexes everything dynamically.
+
+Please implement this absolute global search architecture across FastAPI and SQLite:
+
+1. Dynamic Global Database Indexing (FastAPI + SQLite):
+   - The search endpoint `/api/products/search?q=query` must not care about specific categories. It must dynamically query the entire `products` table.
+   - Clean and normalize the search query (lowercase, trim spaces, handle common suffixes).
+   - Search globally across ALL text and JSON fields in the database schema:
+     * `title` (Product Name)
+     * `description` (Product Details)
+     * `category` (The associated category name string)
+     * `tags` / `keywords` (Dynamic search terms assigned by the admin)
+     * `specifications` (All keys and values inside the technical specifications JSON object)
+
+2. Abstract Matching & Ranking:
+   - Use a universal text-matching approach (SQL case-insensitive `LIKE '%query%'` combined with `OR` clauses, or a unified SQLite FTS5 virtual table indexing all product columns).
+   - If a user types *any* word, the backend must return any item in the inventory where that word appears in *any* part of its database record.
+   - Sort results universally by relevance: Exact title match > Partial title match > Tag/Category match > Description/Specification match.
+
+3. Universal Frontend Binding (React + Tailwind v4):
+   - Ensure the glassmorphism search bar smoothly updates the main grid.
+   - The grid must dynamically render whatever array of products the backend returns, showing a generic "X ta mahsulot topildi" message, making the UI 100% reusable for any product inventory.
+
+Please refactor the search controller to be entirely generic, highly optimized, and completely dynamic for the whole store.

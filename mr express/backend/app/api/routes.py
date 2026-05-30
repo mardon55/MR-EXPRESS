@@ -270,12 +270,40 @@ async def products(
     discount_only: bool = Query(False),
     featured_only: bool = Query(False),
 ):
-    conditions = ["COALESCE(is_reel_product, 0) = 0"]
+    conditions = ["COALESCE(p.is_reel_product, 0) = 0"]
     params: list[Any] = []
+    relevance_sql = "0"
+    relevance_params: list[Any] = []
 
     if q:
-        conditions.append("(name LIKE ? OR description LIKE ?)")
-        params.extend([f"%{q}%", f"%{q}%"])
+        q_clean = q.strip()
+        words = [w.lower() for w in q_clean.split() if w]
+
+        # Har bir so'z kamida bitta maydon bo'yicha mos kelishi kerak (AND mantiq)
+        for word in words:
+            pat = f"%{word}%"
+            conditions.append(
+                "(LOWER(p.name) LIKE ? "
+                "OR LOWER(COALESCE(p.description,'')) LIKE ? "
+                "OR LOWER(COALESCE(c.name,'')) LIKE ? "
+                "OR LOWER(COALESCE(p.attributes,'')) LIKE ?)"
+            )
+            params.extend([pat, pat, pat, pat])
+
+        # Relevantlik balli tartiblash
+        q_exact = q_clean.lower()
+        q_pat = f"%{q_exact}%"
+        relevance_sql = (
+            "CASE "
+            "WHEN LOWER(p.name) = ? THEN 100 "
+            "WHEN LOWER(p.name) LIKE ? THEN 60 "
+            "WHEN LOWER(COALESCE(c.name,'')) LIKE ? THEN 30 "
+            "WHEN LOWER(COALESCE(p.attributes,'')) LIKE ? THEN 15 "
+            "WHEN LOWER(COALESCE(p.description,'')) LIKE ? THEN 10 "
+            "ELSE 5 END"
+        )
+        relevance_params = [q_exact, q_pat, q_pat, q_pat, q_pat]
+
     if category_id:
         child_rows = await fetch(
             "SELECT id FROM categories WHERE parent_id = ?", category_id
@@ -283,20 +311,34 @@ async def products(
         child_ids = [r["id"] for r in child_rows]
         all_ids = [category_id] + child_ids
         placeholders = ",".join("?" * len(all_ids))
-        conditions.append(f"category_id IN ({placeholders})")
+        conditions.append(f"p.category_id IN ({placeholders})")
         params.extend(all_ids)
+
     if discount_only:
-        conditions.append("is_discount = 1")
+        conditions.append("p.is_discount = 1")
     else:
-        conditions.append("is_discount = 0")
+        conditions.append("p.is_discount = 0")
     if featured_only:
-        conditions.append("is_featured = 1")
+        conditions.append("p.is_featured = 1")
 
     where = " AND ".join(conditions)
-    rows = await fetch(
-        f"SELECT * FROM products WHERE {where} ORDER BY id DESC",
-        *params,
-    )
+
+    if q:
+        sql = (
+            f"SELECT p.*, ({relevance_sql}) AS _relevance "
+            f"FROM products p LEFT JOIN categories c ON c.id = p.category_id "
+            f"WHERE {where} ORDER BY _relevance DESC, p.id DESC"
+        )
+        all_params = relevance_params + params
+    else:
+        sql = (
+            f"SELECT p.* FROM products p "
+            f"LEFT JOIN categories c ON c.id = p.category_id "
+            f"WHERE {where} ORDER BY p.id DESC"
+        )
+        all_params = params
+
+    rows = await fetch(sql, *all_params)
     return [_product_row(r) for r in rows]
 
 
