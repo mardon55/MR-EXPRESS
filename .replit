@@ -111,6 +111,10 @@ localPort = 5173
 externalPort = 5173
 
 [[ports]]
+localPort = 5174
+externalPort = 3001
+
+[[ports]]
 localPort = 8000
 externalPort = 8000
 
@@ -127,4 +131,4 @@ build = ["bash", "-c", "cd 'mr express admin/frontend' && npm run build && cd '.
 
 [userenv.shared]
 SECRET_KEY = "5088a722c7358ff5479f31163d5ddbb026546275c27f24d911ca37f471177034"
-CORS_ORIGINS = "*"
+CORS_ORIGINS = "[\"*\"]"
