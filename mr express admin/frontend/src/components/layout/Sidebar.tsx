@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion'
 import { NavLink } from 'react-router-dom'
-import { TruckIcon } from '@heroicons/react/24/solid'
 import { NAVIGATION } from '@/constants/navigation'
 import { sidebarItemVariants, sidebarVariants } from '@/lib/motion'
 import { cn } from '@/lib/utils'
@@ -15,13 +14,12 @@ export function Sidebar() {
     >
       <motion.div variants={sidebarItemVariants} className="mb-10 px-2 pt-2">
         <div className="flex items-center gap-4">
-          <div className="relative flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-brand-500 via-brand-600 to-accent-cyan shadow-glow">
-            <TruckIcon className="h-8 w-8 text-white" />
-            <div className="absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/30" />
+          <div className="relative flex h-14 w-14 items-center justify-center rounded-3xl overflow-hidden shadow-glow">
+            <img src="/logo.png" alt="MR Market" className="h-full w-full object-cover" />
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-ink-900 dark:text-white">
-              MR Express
+              MR Market
             </h1>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600 dark:text-accent-cyan">
               Admin
