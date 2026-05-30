@@ -4,7 +4,7 @@ export default function ProductSpecifications({ specs }) {
   return (
     <section className="mt-6">
       <h2 className="mb-2.5 text-[15px] font-semibold text-neutral-800">
-        Texnik xususiyatlar
+        Ma'lumotlar
       </h2>
       <div className="overflow-hidden rounded-2xl border border-neutral-100 divide-y divide-neutral-100 bg-white shadow-sm">
         {specs.map((s, i) => (
