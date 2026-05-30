@@ -347,6 +347,7 @@ export function AddProductModal({ open, onClose, onCreated, editProduct }: AddPr
   const [description, setDescription] = useState('')
   const [images, setImages] = useState<(File | null)[]>([])
   const [attrValues, setAttrValues] = useState<Record<string, string | string[]>>({})
+  const [customSpecs, setCustomSpecs] = useState<{ key: string; value: string }[]>([])
   const [isFeatured, setIsFeatured] = useState(false)
   const [isDiscount, setIsDiscount] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -390,19 +391,28 @@ export function AddProductModal({ open, onClose, onCreated, editProduct }: AddPr
 
     if (editProduct.attributes && typeof editProduct.attributes === 'object') {
       const attrs: Record<string, string | string[]> = {}
+      const editCatId = editProduct.category_id
+      const editCatFields = CATEGORY_FIELDS[editCatId] ?? []
+      const knownFieldKeys = new Set(editCatFields.map((f) => f.key))
+      const custom: { key: string; value: string }[] = []
       for (const [k, v] of Object.entries(editProduct.attributes)) {
         if (Array.isArray(v)) attrs[k] = v as string[]
         else if (typeof v === 'string') attrs[k] = v
         else if (v !== null && v !== undefined) attrs[k] = String(v)
+        if (!knownFieldKeys.has(k)) {
+          custom.push({ key: k, value: Array.isArray(v) ? (v as string[]).join(', ') : String(v ?? '') })
+        }
       }
       setAttrValues(attrs)
+      setCustomSpecs(custom)
     } else {
       setAttrValues({})
+      setCustomSpecs([])
     }
   }, [open, editProduct?.id, allFlat.length])
 
   useEffect(() => {
-    if (!isEditing) setAttrValues({})
+    if (!isEditing) { setAttrValues({}); setCustomSpecs([]) }
   }, [categoryId, subcategoryId, isEditing])
 
   function reset() {
@@ -415,6 +425,7 @@ export function AddProductModal({ open, onClose, onCreated, editProduct }: AddPr
     setDescription('')
     setImages([])
     setAttrValues({})
+    setCustomSpecs([])
     setIsFeatured(false)
     setIsDiscount(false)
     setError(null)
@@ -443,6 +454,11 @@ export function AddProductModal({ open, onClose, onCreated, editProduct }: AddPr
     for (const [k, v] of Object.entries(attrValues)) {
       if (Array.isArray(v) ? v.length > 0 : v.trim())
         cleanAttrs[k] = v
+    }
+    for (const { key, value } of customSpecs) {
+      const k = key.trim()
+      const v = value.trim()
+      if (k && v) cleanAttrs[k] = v
     }
 
     const form = new FormData()
@@ -681,6 +697,60 @@ export function AddProductModal({ open, onClose, onCreated, editProduct }: AddPr
                   ))}
                 </div>
               )}
+
+              <div className="rounded-3xl border border-white/20 bg-white/5 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-ink-700 dark:text-ink-300">
+                    ✏️ Qo&apos;shimcha xususiyatlar (erkin)
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setCustomSpecs((prev) => [...prev, { key: '', value: '' }])}
+                    className="frosted-button !rounded-2xl !px-3 !py-1.5 !text-xs flex items-center gap-1"
+                  >
+                    <PlusIcon className="h-3.5 w-3.5" />
+                    Qator qo&apos;shish
+                  </button>
+                </div>
+                {customSpecs.length === 0 && (
+                  <p className="text-xs text-ink-400 dark:text-ink-500">
+                    Masalan: Ekran → 6.9&quot; OLED, Protsessor → A18 Pro
+                  </p>
+                )}
+                {customSpecs.map((row, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input
+                      className={cn(inputClass, '!py-2 !text-xs flex-1')}
+                      placeholder="Kalit (masalan: Ekran)"
+                      value={row.key}
+                      onChange={(e) =>
+                        setCustomSpecs((prev) =>
+                          prev.map((r, i) => (i === idx ? { ...r, key: e.target.value } : r))
+                        )
+                      }
+                    />
+                    <span className="shrink-0 text-xs text-ink-400">→</span>
+                    <input
+                      className={cn(inputClass, '!py-2 !text-xs flex-[2]')}
+                      placeholder="Qiymat (masalan: 6.9&quot; OLED)"
+                      value={row.value}
+                      onChange={(e) =>
+                        setCustomSpecs((prev) =>
+                          prev.map((r, i) => (i === idx ? { ...r, value: e.target.value } : r))
+                        )
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setCustomSpecs((prev) => prev.filter((_, i) => i !== idx))}
+                      className="shrink-0 rounded-xl p-1.5 text-rose-500 hover:bg-rose-500/10 transition-colors"
+                      aria-label="O'chirish"
+                    >
+                      <XCircleIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-ink-600 dark:text-ink-300">

@@ -6,6 +6,7 @@ import { resolveUrl } from '../utils/resolveUrl';
 import { useApp } from '../context/AppContext';
 import { useTelegram } from '../hooks/useTelegram';
 import { IconChevronLeft, IconHeartFilled } from '../components/icons/TabIcons';
+import ProductSpecifications from '../components/ProductSpecifications';
 
 const ATTR_LABELS = {
   brand: 'Brend',
@@ -15,14 +16,53 @@ const ATTR_LABELS = {
   skin_type: 'Teri turi',
   age_range: 'Yosh',
   dimensions: "O'lchamlari",
-  storage: 'Xotira',
+  storage: 'Xotira (ROM)',
   ram: 'RAM',
   sizes: "O'lchamlar",
   colors: 'Ranglar',
+  type: 'Turi',
+  connection: 'Ulanish',
+  compatible_models: 'Mos modellar',
+  glass_type: 'Shisha turi',
+  thickness: 'Qalinligi',
+  wattage: 'Quvvat (W)',
+  port_type: 'Port turi',
+  cable_length: 'Kabel uzunligi',
+  clothing_type: 'Kiyim turi',
+  season: 'Mavsum',
+  gender: 'Jinsi',
+  capacity: "Hajmi",
+  set_size: "To'plam",
+  compatibility: 'Mosligi',
+  purpose: 'Vazifasi',
+  tone: 'Ton',
+  lipstick_type: 'Pomada turi',
+  feature: 'Xususiyati',
+  features: 'Xususiyatlar',
+  hair_type: 'Soch turi',
+  scent_group: 'Ifor guruhi',
+  development: 'Rivojlantirish',
+  sound_light: 'Ovoz / Chiroq',
+  pieces: 'Detallar soni',
+  theme: 'Mavzusi',
+  filling: "To'ldiruvchi",
+  washable: 'Yuvish',
+  hypoallergenic: 'Gipoallergen',
+  control: 'Boshqaruv',
+  power: 'Quvvat',
+  energy_class: 'Energiya sinfi',
+  players: "O'yinchilar soni",
+  language: 'Tili',
+  duration: 'Davomiyligi',
+  pattern: 'Naqsh',
+  room: 'Xona',
+  upholstery: 'Qoplama',
+  speed: 'Tezligi',
+  safety: 'Zararsizligi',
+  color: 'Rang',
 };
 
 const VARIANT_KEYS = ['sizes', 'colors', 'storage', 'ram'];
-const SPEC_KEYS = ['brand', 'material', 'warranty', 'volume', 'skin_type', 'age_range', 'dimensions'];
 
 function getVariantGroups(product) {
   if (!product?.attributes) return [];
@@ -42,11 +82,12 @@ function getVariantGroups(product) {
 function getSpecs(product) {
   if (!product?.attributes) return [];
   const specs = [];
-  for (const key of SPEC_KEYS) {
-    const val = product.attributes[key];
-    if (!val) continue;
+  for (const [key, val] of Object.entries(product.attributes)) {
+    if (VARIANT_KEYS.includes(key)) continue;
+    if (val === null || val === undefined || val === '') continue;
     const label = ATTR_LABELS[key] || key;
-    specs.push({ label, value: Array.isArray(val) ? val.join(', ') : val });
+    const displayVal = Array.isArray(val) ? val.join(', ') : String(val);
+    specs.push({ label, value: displayVal });
   }
   return specs;
 }
@@ -553,24 +594,7 @@ export default function ProductDetail() {
           </section>
         ))}
 
-        {specs.length > 0 && (
-          <section className="mt-6">
-            <h2 className="mb-2.5 text-[15px] font-semibold text-neutral-800">Xususiyatlar</h2>
-            <div className="overflow-hidden rounded-2xl border border-neutral-100">
-              {specs.map((s, i) => (
-                <div
-                  key={s.label}
-                  className={`flex items-center justify-between gap-4 px-4 py-3 text-[14px] ${
-                    i % 2 === 0 ? 'bg-neutral-50' : 'bg-white'
-                  }`}
-                >
-                  <span className="font-medium text-neutral-500">{s.label}</span>
-                  <span className="text-right font-semibold text-neutral-800">{s.value}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        <ProductSpecifications specs={specs} />
 
         {rawDescription ? (
           <section className="mt-7">
