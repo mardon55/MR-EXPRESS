@@ -301,87 +301,23 @@ function PromoCodeCard({ promo, copiedId, onCopy }) {
   );
 }
 
-/** Promokodlar ichki sahifasi — real API dan ma'lumot oladi */
-function PromoCodesView({ onBack, tg, onCountChange }) {
-  const [promos, setPromos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [copiedId, setCopiedId] = useState(null);
-
-  const fetchPromos = useCallback(async () => {
-    try {
-      const data = await api.promoCodes();
-      setPromos(data || []);
-      onCountChange?.((data || []).filter((p) => p.status === 'active').length);
-    } catch {
-      /* silent */
-    } finally {
-      setLoading(false);
-    }
+/** Promokodlar ichki sahifasi — hozircha muzlatilgan */
+function PromoCodesView({ onBack, onCountChange }) {
+  useEffect(() => {
+    onCountChange?.(0);
   }, [onCountChange]);
-
-  useEffect(() => { fetchPromos(); }, [fetchPromos]);
-  useAutoRefresh(fetchPromos, 30_000);
-
-  const activePromos = promos.filter((p) => p.status === 'active');
-  const hasPromos = promos.length > 0;
-
-  const handleCopy = async (promo) => {
-    try {
-      await navigator.clipboard.writeText(promo.code);
-      setCopiedId(promo.id);
-      tg?.showAlert?.(`Promokod nusxalandi: ${promo.code}`);
-      window.setTimeout(() => setCopiedId(null), 2000);
-    } catch {
-      tg?.showAlert?.('Nusxalash amalga oshmadi');
-    }
-  };
 
   return (
     <SubPage title="Promokodlar" onBack={onBack}>
-      <p className="mb-3 text-xs leading-relaxed text-theme-muted">
-        Buyurtmangiz yetkazilgandan so&apos;ng 2 ta maxsus promokod avtomatik beriladi. Muddati 3 kun.
-      </p>
-
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-theme-accent border-t-transparent" />
+      <div className="flex h-full flex-col items-center justify-center py-16 text-center">
+        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-theme-icon shadow-theme-sm">
+          <span className="text-4xl">🔒</span>
         </div>
-      )}
-
-      {!loading && !hasPromos && (
-        <div className="rounded-xl border border-theme bg-theme-card px-4 py-8 text-center shadow-theme-sm">
-          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-theme-icon">
-            <ShoppingBag className="h-6 w-6 text-theme-muted" strokeWidth={2} />
-          </span>
-          <p className="mt-3 text-[15px] font-semibold text-theme">Hali promokod yo&apos;q</p>
-          <p className="mt-2 text-xs leading-relaxed text-theme-muted">
-            Birinchi buyurtmangiz yetkazilgach, 2 ta maxsus promokod avtomatik beriladi.
-          </p>
-        </div>
-      )}
-
-      {!loading && hasPromos && (
-        <>
-          <div className="mb-3 rounded-xl bg-theme-icon px-3 py-2.5">
-            <p className="text-[11px] font-medium text-theme-muted">
-              Sizda {activePromos.length} ta faol promokod
-            </p>
-            <p className="mt-0.5 text-xs text-theme">
-              Jami {promos.length} ta promokod berilgan
-            </p>
-          </div>
-          <ul className="space-y-2">
-            {promos.map((promo) => (
-              <PromoCodeCard
-                key={promo.id}
-                promo={promo}
-                copiedId={copiedId}
-                onCopy={handleCopy}
-              />
-            ))}
-          </ul>
-        </>
-      )}
+        <p className="mt-5 text-[17px] font-bold text-theme">Bu bo&apos;lim hozircha muzlatilgan</p>
+        <p className="mt-2 max-w-[240px] text-[13px] leading-relaxed text-theme-muted">
+          Yaqin orada ishga tushiriladi. Kuting!
+        </p>
+      </div>
     </SubPage>
   );
 }
