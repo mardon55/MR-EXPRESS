@@ -6,21 +6,14 @@ export default function ProductSpecifications({ specs }) {
       <h2 className="mb-2.5 text-[15px] font-semibold text-neutral-800">
         Texnik xususiyatlar
       </h2>
-      <div
-        className="overflow-hidden rounded-2xl border border-white/10 divide-y divide-white/5"
-        style={{
-          background: 'rgba(15, 23, 42, 0.40)',
-          backdropFilter: 'blur(14px)',
-          WebkitBackdropFilter: 'blur(14px)',
-        }}
-      >
-        {specs.map((s) => (
+      <div className="overflow-hidden rounded-2xl border border-neutral-100 divide-y divide-neutral-100 bg-white shadow-sm">
+        {specs.map((s, i) => (
           <div
-            key={s.label}
-            className="flex items-center justify-between gap-4 px-4 py-3.5"
+            key={s.label + i}
+            className="flex items-center justify-between gap-4 px-4 py-3"
           >
-            <span className="shrink-0 text-sm text-slate-400">{s.label}</span>
-            <span className="text-right text-sm font-medium text-white leading-snug">
+            <span className="shrink-0 text-[13px] text-neutral-500">{s.label}</span>
+            <span className="text-right text-[13px] font-semibold text-neutral-800 leading-snug">
               {s.value}
             </span>
           </div>

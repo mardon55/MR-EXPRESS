@@ -62,28 +62,10 @@ const ATTR_LABELS = {
   color: 'Rang',
 };
 
-const VARIANT_KEYS = ['sizes', 'colors', 'storage', 'ram'];
-
-function getVariantGroups(product) {
-  if (!product?.attributes) return [];
-  const groups = [];
-  for (const key of VARIANT_KEYS) {
-    const val = product.attributes[key];
-    if (Array.isArray(val) && val.length > 0) {
-      groups.push({ key, label: ATTR_LABELS[key] || key, options: val });
-    }
-  }
-  if (groups.length === 0 && product.category_id === 2) {
-    groups.push({ key: 'sizes', label: "O'lchamlar", options: ['S', 'M', 'L', 'XL'] });
-  }
-  return groups;
-}
-
 function getSpecs(product) {
   if (!product?.attributes) return [];
   const specs = [];
   for (const [key, val] of Object.entries(product.attributes)) {
-    if (VARIANT_KEYS.includes(key)) continue;
     if (val === null || val === undefined || val === '') continue;
     const label = ATTR_LABELS[key] || key;
     const displayVal = Array.isArray(val) ? val.join(', ') : String(val);
@@ -387,7 +369,6 @@ export default function ProductDetail() {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
   const [qty, setQty] = useState(1);
-  const [selectedVariants, setSelectedVariants] = useState({});
   const [activeImage, setActiveImage] = useState(0);
   const { isFavorite, toggleFavorite, refreshCart } = useApp();
   const { haptic, tg } = useTelegram();
@@ -402,13 +383,6 @@ export default function ProductDetail() {
     }).catch(() => navigate(-1));
   }, [id, navigate]);
 
-  useEffect(() => {
-    if (!product) return;
-    const groups = getVariantGroups(product);
-    const defaults = {};
-    groups.forEach((g) => { defaults[g.key] = g.options[0]; });
-    setSelectedVariants(defaults);
-  }, [product?.id]);
 
   if (!product) {
     return (
@@ -418,7 +392,6 @@ export default function ProductDetail() {
     );
   }
 
-  const variantGroups = getVariantGroups(product);
   const specs = getSpecs(product);
   const images = product.images?.length ? product.images : (product.image_url ? [product.image_url] : []);
   const discount =
@@ -432,15 +405,10 @@ export default function ProductDetail() {
   const addToCart = async () => {
     const cart = await api.cart().catch(() => ({ items: [] }));
     const existing = cart.items?.find((i) => i.product.id === product.id);
-    const variantEntries = Object.entries(selectedVariants).filter(([, v]) => v);
-    const formattedVariants = variantEntries.length > 0
-      ? variantEntries.map(([k, v]) => ({ name: ATTR_LABELS[k] || k, value: String(v) }))
-      : null;
-    await api.updateCart(product.id, (existing?.quantity || 0) + qty, formattedVariants);
+    await api.updateCart(product.id, (existing?.quantity || 0) + qty, null);
     await refreshCart();
     haptic('success');
-    const variantText = variantEntries.map(([k, v]) => `${ATTR_LABELS[k] || k}: ${v}`).join(', ');
-    tg?.showAlert?.(`Savatchaga qo'shildi!${variantText ? '\n' + variantText : ''}`);
+    tg?.showAlert?.(`Savatchaga qo'shildi!`);
   };
 
   const toggleFav = async () => {
@@ -565,34 +533,6 @@ export default function ProductDetail() {
             </span>
           )}
         </div>
-
-        {variantGroups.map((group) => (
-          <section key={group.key} className="mt-5" aria-label={group.label}>
-            <h2 className="mb-2.5 text-[15px] font-semibold text-neutral-800">{group.label}</h2>
-            <div className="flex flex-row gap-2 overflow-x-auto hide-scrollbar pb-0.5">
-              {group.options.map((opt) => {
-                const active = selectedVariants[group.key] === opt;
-                return (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => {
-                      setSelectedVariants((prev) => ({ ...prev, [group.key]: opt }));
-                      haptic('light');
-                    }}
-                    className={`press-fluid shrink-0 rounded-lg border-2 px-4 py-2.5 text-[14px] font-semibold transition-colors ${
-                      active
-                        ? 'border-ios-blue bg-ios-blue/8 text-ios-blue'
-                        : 'border-neutral-200 bg-neutral-50 text-neutral-700'
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        ))}
 
         <ProductSpecifications specs={specs} />
 
