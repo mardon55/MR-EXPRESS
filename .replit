@@ -126,3 +126,5 @@ build = ["bash", "-c", "cd 'mr express admin/frontend' && npm run build && cd '.
 [userenv]
 
 [userenv.shared]
+SECRET_KEY = "5088a722c7358ff5479f31163d5ddbb026546275c27f24d911ca37f471177034"
+CORS_ORIGINS = "*"
