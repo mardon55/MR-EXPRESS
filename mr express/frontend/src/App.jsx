@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import SplashScreen from './components/SplashScreen';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 import LiquidBackground from './components/LiquidBackground';
@@ -179,6 +180,7 @@ function useMiniAppSSE() {
 
 export default function App() {
   useMiniAppSSE();
+  const [splash, setSplash] = useState(true);
 
   useEffect(() => {
     const tg = initTelegramFullscreen();
@@ -210,6 +212,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      {splash && <SplashScreen onDone={() => setSplash(false)} />}
       <BrowserRouter basename="/shop">
         <ThemeProvider>
           <AppProvider>
