@@ -24,6 +24,10 @@ export default function SplashScreen({ onDone }) {
         height: '100%',
         zIndex: 99999,
         overflow: 'hidden',
+        backgroundColor: '#d6dde8',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         transition: 'opacity 0.6s ease',
         opacity: phase === 'out' ? 0 : 1,
         pointerEvents: phase === 'out' ? 'none' : 'all',
@@ -33,12 +37,9 @@ export default function SplashScreen({ onDone }) {
         src="/shop/logo.png"
         alt="MR Market"
         style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
           width: '100%',
           height: '100%',
-          objectFit: 'cover',
+          objectFit: 'contain',
           objectPosition: 'center',
           animation: 'splashZoom 3s ease forwards',
         }}
@@ -46,7 +47,7 @@ export default function SplashScreen({ onDone }) {
       <style>{`
         @keyframes splashZoom {
           0%   { transform: scale(1.0); }
-          100% { transform: scale(1.08); }
+          100% { transform: scale(1.06); }
         }
       `}</style>
     </div>
