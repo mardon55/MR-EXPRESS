@@ -1,4 +1,44 @@
 @import "tailwindcss";
+@source "../index.html";
+@source "./";
+
+@theme {
+  --font-family-sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "SF Pro Text", system-ui, sans-serif;
+
+  --color-ios-blue: #007aff;
+  --color-ios-green: #34c759;
+  --color-ios-red: #ff3b30;
+  --color-ios-gray: #8e8e93;
+  --color-ios-muted: #636366;
+
+  --radius-squircle: 24px;
+  --radius-squircle-lg: 30px;
+
+  --ease-fluid: cubic-bezier(0.25, 1, 0.5, 1);
+  --duration-fluid: 150ms;
+
+  --shadow-glass: 0 8px 32px rgba(31, 38, 135, 0.08);
+  --shadow-glass-lg: 0 12px 40px rgba(31, 38, 135, 0.12);
+
+  --animate-liquid: liquid-shift 14s ease-in-out infinite;
+  --animate-liquid-alt: liquid-shift-alt 18s ease-in-out infinite;
+  --animate-glass-float: glass-float 5s ease-in-out infinite;
+
+  @keyframes liquid-shift {
+    0%, 100% { transform: translate(0%, 0%) scale(1); }
+    33%       { transform: translate(4%, -3%) scale(1.05); }
+    66%       { transform: translate(-3%, 4%) scale(0.98); }
+  }
+  @keyframes liquid-shift-alt {
+    0%, 100% { transform: translate(0%, 0%) scale(1); }
+    50%      { transform: translate(-5%, 2%) scale(1.08); }
+  }
+  @keyframes glass-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-3px); }
+  }
+}
 
 @layer base {
   * {
@@ -23,7 +63,7 @@
   }
 
   body {
-    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--font-family-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -37,13 +77,8 @@
 
 @layer base {
   :root {
-    /* Telegram tepa paneli (X, ⋮) — butun ilova shu pastdan boshlanadi */
-    --tg-header-offset: max(
-      55px,
-      calc(env(safe-area-inset-top, 20px) + 36px)
-    );
+    --tg-header-offset: max(55px, calc(env(safe-area-inset-top, 20px) + 36px));
 
-    /* Default: Digital Peach */
     --theme-bg: #ffffff;
     --theme-card: #f8f9fa;
     --theme-accent: #ff7e5f;
@@ -66,82 +101,158 @@
   }
 }
 
-@layer utilities {
-  /* Asosiy ilova qobig'i — barcha sahifalar shu ichida */
-  .app-shell {
-    padding-top: var(--tg-header-offset);
-    padding-bottom: max(16px, env(safe-area-inset-bottom, 20px));
-    min-height: 100dvh;
-    box-sizing: border-box;
-  }
+@utility glass {
+  background-color: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(25px) saturate(190%);
+  -webkit-backdrop-filter: blur(25px) saturate(190%);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.4);
+}
 
-  .app-main {
-    min-height: 0;
-    flex: 1 1 0%;
-    overflow: hidden;
-  }
+@utility glass-subtle {
+  background-color: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.35);
+}
 
-  .scroll-area {
-    -webkit-overflow-scrolling: touch;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    height: 100%;
-  }
+@utility glass-float {
+  border-radius: 30px;
+  background-color: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 12px 40px rgba(31, 38, 135, 0.12);
+  overflow: hidden;
+}
 
-  .hide-scrollbar::-webkit-scrollbar {
+@utility glass-float-dock {
+  width: calc(100% - 32px);
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+
+@utility transition-fluid {
+  transition-property: color, background-color, border-color, opacity, transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@utility press-fluid {
+  transition-property: transform, opacity;
+  transition-duration: 120ms;
+  transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+@utility liquid-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+@utility liquid-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.55;
+}
+
+@utility liquid-blob-1 {
+  width: 70%;
+  height: 55%;
+  top: -10%;
+  left: -15%;
+  background: radial-gradient(circle, rgba(186, 230, 253, 0.9) 0%, transparent 70%);
+  animation: liquid-shift 14s ease-in-out infinite;
+}
+
+@utility liquid-blob-2 {
+  width: 60%;
+  height: 50%;
+  top: 35%;
+  right: -20%;
+  background: radial-gradient(circle, rgba(233, 213, 255, 0.85) 0%, transparent 70%);
+  animation: liquid-shift-alt 18s ease-in-out infinite;
+}
+
+@utility liquid-blob-3 {
+  width: 55%;
+  height: 45%;
+  bottom: -5%;
+  left: 20%;
+  background: radial-gradient(circle, rgba(254, 215, 226, 0.8) 0%, transparent 70%);
+  animation: liquid-shift 16s ease-in-out infinite reverse;
+}
+
+@utility liquid-blob-4 {
+  width: 45%;
+  height: 40%;
+  top: 55%;
+  left: -10%;
+  background: radial-gradient(circle, rgba(204, 251, 241, 0.75) 0%, transparent 70%);
+  animation: liquid-shift-alt 20s ease-in-out infinite;
+}
+
+@utility app-shell {
+  padding-top: var(--tg-header-offset);
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 20px));
+  min-height: 100dvh;
+  box-sizing: border-box;
+}
+
+@utility app-main {
+  min-height: 0;
+  flex: 1 1 0%;
+  overflow: hidden;
+}
+
+@utility scroll-area {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  height: 100%;
+}
+
+@utility hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
     display: none;
   }
+}
 
-  .hide-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+@utility pb-nav-safe {
+  padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 20px));
+}
 
-  /* Pastki floating tab bar uchun joy */
-  .pb-nav-safe {
-    padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 20px));
-  }
-
-  /* Reels — vertikal scroll-snap, har slayd to'liq ekran balandligi */
-  .reels-scroll {
-    scroll-snap-type: y mandatory;
-  }
-
-  .reels-scroll > section {
+@utility reels-scroll {
+  scroll-snap-type: y mandatory;
+  & > section {
     min-height: 100%;
     height: 100%;
   }
-
-  /* Multi-theme utilities */
-  .bg-theme-bg {
-    background-color: var(--theme-bg);
-  }
-  .bg-theme-card {
-    background-color: var(--theme-card);
-  }
-  .bg-theme-icon {
-    background-color: var(--theme-icon-bg);
-  }
-  .text-theme {
-    color: var(--theme-text);
-  }
-  .text-theme-muted {
-    color: var(--theme-text-muted);
-  }
-  .text-theme-accent {
-    color: var(--theme-accent);
-  }
-  .border-theme {
-    border-color: var(--theme-border);
-  }
-  .shadow-theme-sm {
-    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
-  }
-  .btn-theme-accent {
-    background: var(--theme-accent-gradient);
-    color: var(--theme-accent-text);
-  }
-  .ring-theme-accent {
-    box-shadow: 0 0 0 2px var(--theme-accent);
-  }
 }
+
+@utility bg-theme-bg    { background-color: var(--theme-bg); }
+@utility bg-theme-card  { background-color: var(--theme-card); }
+@utility bg-theme-icon  { background-color: var(--theme-icon-bg); }
+@utility text-theme       { color: var(--theme-text); }
+@utility text-theme-muted { color: var(--theme-text-muted); }
+@utility text-theme-accent { color: var(--theme-accent); }
+@utility border-theme     { border-color: var(--theme-border); }
+@utility shadow-theme-sm  { box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06); }
+@utility btn-theme-accent {
+  background: var(--theme-accent-gradient);
+  color: var(--theme-accent-text);
+}
+@utility ring-theme-accent { box-shadow: 0 0 0 2px var(--theme-accent); }
